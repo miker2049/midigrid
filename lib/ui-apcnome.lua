@@ -114,8 +114,10 @@ function UI.init_grid(config)
   local my_grid = config.device
   UI.grid_key_callback = config.key_callback
   my_grid.event=function(data)
+    print("sup")
     local parsed = midi.to_msg(data)
-    local y,x,s= apcnome.notecoord(parsed.note,parsed.vel)
+    local x, y, vel= apcnome.notecoord(parsed.note,parsed.vel)
+    local s = parsed.type =='note_on' and 1 or 0
     UI.flash_event()
     UI.grid_key_callback(x, y, s)
   end

@@ -36,7 +36,7 @@ local app_title = "STRUM"
 -- pattern vars
 local steps = {}
 local playchoice = 1
-local pattern_len = 16
+local pattern_len = 8
 local position = 1
 
 local note_playing = nil
@@ -48,9 +48,9 @@ local k3_state = 1
 -- device vars
 -- local grid_device = grid.connect()
 local grid_device = include('lib/apcnome') 
-local midi_in_device = midi.connect()
-local midi_out_device = midi.connect()
-local midi_out_channel
+-- local midi_in_device = midi.connect()
+local midi_out_device = midi.connect(2)
+-- local midi_out_channel
 
 -- scale vars
 local root_num = 60
@@ -60,7 +60,7 @@ local scale = music.generate_scale_of_length(root_num,music.SCALES[mode].name,8)
 
 -- clock vars
 local beat_clock = beatclock.new()
-local beat_clock_midi = midi.connect()
+local beat_clock_midi = midi.connect(2)
 beat_clock_midi.event = beat_clock.process_midi
 
 -- load/save/delete
@@ -189,7 +189,7 @@ end
 local function all_notes_kill()
     
   -- MIDI out
-  midi_out_device:note_off(note_playing, nil)
+  -- midi_out_device:note_off(note_playing, nil)
   note_playing = nil
 end
 
@@ -254,7 +254,7 @@ function handle_step()
             -- MIDI out
         if (params:get("output") == 2 or params:get("output") == 3) then
             if note_playing ~= nil then
-                midi_out_device:note_off(note_playing,nil)
+                -- midi_out_device:note_off(note_playing,nil)
             end
             note_playing = music.freq_to_note_num(music.note_num_to_freq(scale[steps[position]]),1)
             midi_out_device:note_on(note_playing,vel*100)
@@ -280,7 +280,7 @@ end
 --     screen_dirty = true
 -- end
 
- grid_device.event=function(data)
+function grid_device.event(data)
    local parsed = midi.to_msg(data)
    local y,x,vel= apcnome.notecoord(parsed.note,parsed.vel)
    local z = parsed.type =='note_on' and 1 or 0
@@ -293,6 +293,7 @@ end
      grid_dirty = true
    end
    screen_dirty = true
+   print("hey")
  end
 ---------------------
 -- redraw the grid --
@@ -459,6 +460,20 @@ end
 -------------------------
 function redraw()
 	
+  grid_device.event=function(data)
+    local parsed = midi.to_msg(data)
+    local y,x,vel= apcnome.notecoord(parsed.note,parsed.vel)
+    local z = parsed.type =='note_on' and 1 or 0
+    if z == 1 then
+      if steps[x] == y then
+        steps[x] = 0
+      else
+        steps[x] = y
+      end
+      grid_dirty = true
+    end
+    screen_dirty = true
+  end
   screen.clear()
     
   if confirm_message then
@@ -591,7 +606,8 @@ function init()
     action = function(value)
       grid_device:all(0)
       grid_device:refresh()
-      grid_device = grid.connect(value)
+      -- grid_device = grid.connect(value)
+      grid_device = include('lib/apcnome')
   end}
     
   params:add_option("grid_display", "Grid Display", { "Bar", "Scatter" }, grid_display or 2 and 1)
@@ -602,7 +618,7 @@ function init()
     local val
     if x == 1 then val = 0 else val = 2 end
 		grid_device:all(0)
-		grid_device:rotation(val)
+		-- grid_device:rotation(val)
 		grid_device:refresh()
 	end) 
 

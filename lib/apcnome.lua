@@ -105,6 +105,7 @@ function apcnome.notecoord(note,vel)
 end
 
 function apcnome:led(x, y, z) 
+  -- print("led!")
   if self.device then
     chan = 1
     note = apcgrid[x][y]
@@ -117,6 +118,7 @@ function apcnome:led(x, y, z)
     end
   end
 end
+
 function apcnome:refresh() 
   if self.device then
     self:send(self.ledbuf)

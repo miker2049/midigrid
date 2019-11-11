@@ -271,6 +271,7 @@ local function init_ui()
   UI.init_grid {
     device = include('lib/apcnome'),
     key_callback = function(y,x,state)
+      print(state)
       if state == 1 then
         if cutting_is_enabled() and y == 8 then
           queued_playpos = x-1
@@ -283,6 +284,7 @@ local function init_ui()
             not trig_is_set(params:get("pattern"), x, y)
           )
           UI.grid_dirty = true
+          --flag
         end
       end
       UI.flash_event()
