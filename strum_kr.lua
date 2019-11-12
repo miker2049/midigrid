@@ -1,15 +1,16 @@
+--
 -- The strum of your chords,
---   Sways my soul 
---     back and fourth. 
-
-
+--   Sways my soul
+--     back and fourth.
+--
+--
 -- scriptname: Strum
 -- v1.0.0 @carvingcode
 -- https://llllllll.co/t/strum/21025
 
-
+--
 -- vars
-
+--
 engine.name = 'KarplusRings'
 
 local UI = require "ui"
@@ -19,7 +20,7 @@ local beatclock = require 'beatclock'
 
 local playmode = {"Onward","Aft", "Sway", "Joy"}
 local out_options = {"Audio", "MIDI", "Audio + MIDI"}
-local grid_display_options = {"Normal", "0 degrees"}
+local grid_display_options = {"Normal", "180 degrees"}
 local DATA_FILE_PATH = _path.data .. "ccode/strum/strum_kr.data"
 
 -- vars for UI
@@ -35,7 +36,6 @@ local app_title = "STRUM"
 -- pattern vars
 local steps = {}
 local playchoice = 1
---changed to eight
 local pattern_len = 8
 local position = 1
 
@@ -46,10 +46,10 @@ local direction = 1
 local k3_state = 1
 
 -- device vars
-local grid_device = include('lib/apcnome')
--- local midi_in_device = midi.connect()
+local grid_device = include("lib/apcnome")
+local midi_in_device = grid_device
 local midi_out_device = midi.connect(2)
--- local midi_out_channel
+local midi_out_channel
 
 -- scale vars
 local root_num = 60
@@ -117,7 +117,7 @@ end
 
 local function load_pattern(index)
   if index > #save_data.patterns then return end
-  
+
   local pattern = copy_object(save_data.patterns[index])
     params:set("bpm", pattern.bpm)
     params:set("damping", pattern.damping)
@@ -133,7 +133,7 @@ local function load_pattern(index)
     playchoice = pattern.playchoice
     steps = pattern.steps
     scale = pattern.scale
-  
+
     tonic = music.note_num_to_name(root_num, 1)
 
   last_edited_slot = index
@@ -160,11 +160,11 @@ local function save_pattern(index)
     steps = steps,
     scale = scale
   }
-  
+
   save_data.patterns[index] = copy_object(pattern)
   last_edited_slot = index
   update_save_slot_list()
-  
+
   write_data()
 end
 
@@ -178,18 +178,18 @@ local function delete_pattern(index)
     end
   end
   update_save_slot_list()
-  
+
   write_data()
 end
 
 
 ----------------
--- stop notes -- 
+-- stop notes --
 ----------------
 local function all_notes_kill()
-    
+
   -- MIDI out
-  -- midi_out_device:note_off(note_playing, nil)
+  midi_out_device:note_off(note_playing, nil)
   note_playing = nil
 end
 
@@ -197,13 +197,13 @@ end
 -- reset pattern --
 -------------------
 local function reset_pattern()
-    
+
     if playmode[playchoice] == "Aft"  then
-    	position = 17
+      position = 17
     elseif playmode[playchoice] == "Sway"  then
-    	position = 8
+      position = 8
     else
-    	position = 0
+      position = 0
     end
     all_notes_kill()
     beat_clock:reset()
@@ -216,13 +216,13 @@ function handle_step()
 
     if playmode[playchoice] == "Onward" then
         position = (position % pattern_len) + 1
-        
+
     elseif playmode[playchoice] == "Aft" then
         position = position - 1
         if position == 0 then
             position = pattern_len
         end
-        
+
     elseif playmode[playchoice] == "Sway" then
         if direction == 1 then
             position = (position % pattern_len) + 1
@@ -244,46 +244,42 @@ function handle_step()
 
     if steps[position] ~= 0 then
         vel = math.random(1,100) / 100 -- random velocity values
-        
+
           -- Audio engine out
         if params:get("output") == 1 or params:get("output") == 3 then
                 engine.amp(vel)
                 engine.hz(music.note_num_to_freq(scale[steps[position]]))
         end
-        
+
             -- MIDI out
         if (params:get("output") == 2 or params:get("output") == 3) then
             if note_playing ~= nil then
-                -- midi_out_device:note_off(note_playing,nil)
+                midi_out_device:note_off(note_playing,nil)
             end
             note_playing = music.freq_to_note_num(music.note_num_to_freq(scale[steps[position]]),1)
             midi_out_device:note_on(note_playing,vel*100)
         end
-        
+
     end
     grid_dirty = true
 end
 
--- -------------------------
--- -- handle grid presses --
--- -------------------------
+-------------------------
+-- handle grid presses --
+-------------------------
 
--- --  grid_device.event=function(data)
--- --    local parsed = midi.to_msg(data)
--- --    print("key event")
--- --    local x,y,vel= apcnome.notecoord(parsed.note,parsed.vel)
--- --    local z = parsed.type =='note_on' and 1 or 0
--- --     if z == 1 then
--- --         if steps[x] == y then
--- --             steps[x] = 0
--- --         else
--- --             steps[x] = y
--- --         end
--- --         grid_dirty = true
--- --     end
--- --     screen_dirty = true
--- -- end
+function grid_device.key(x,y,z)
 
+  if z == 1 then
+    if steps[x] == y then
+      steps[x] = 0
+    else
+      steps[x] = y
+    end
+    grid_dirty = true
+  end
+  screen_dirty = true
+end
 ---------------------
 -- redraw the grid --
 ---------------------
@@ -293,7 +289,9 @@ function grid_redraw()
          if grid_display == 1 then
             if steps[i] ~= 0 then
                 for j=0,7 do
-                    grid_device:led(i,steps[i]+j,i==position and 12 or (2+j))
+                  local lit=steps[i]<=j and 0 or 9
+                  grid_device:led(i,j+1,i==position and 12 or lit)
+                    -- grid_device:led(i,steps[i]+j,i==position and 12 or (2+j))
                 end
             end
         else
@@ -307,14 +305,14 @@ end
 -- handle norns keys --
 -----------------------
 function key(n,z)
-	
+
   if n==1 then
     alt = z==1
   end
 
   if z == 1 then
-  
-    if alt and n == 2 then 
+
+    if alt and n == 2 then
 
       steps = {}
       for i=1,16 do
@@ -322,7 +320,7 @@ function key(n,z)
       end
 
     elseif n == 2 then
-      
+
       if confirm_message then
         confirm_message = nil
         confirm_function = nil
@@ -334,7 +332,7 @@ function key(n,z)
         if k3_state == 0 then
           beat_clock:stop()
           k3_state = 1
-            
+
           -- MIDI out
           if (params:get("output") == 2 or params:get("output") == 3) then
             all_notes_kill()
@@ -348,10 +346,10 @@ function key(n,z)
           k3_state = 0
         end
 
-    
+
       -- Load/Save
       elseif pages.index == 3 then
-          
+
         if confirm_message then
           confirm_function()
           confirm_message = nil
@@ -361,7 +359,7 @@ function key(n,z)
           -- Load
           if save_menu_list.index == 1 then
             load_pattern(save_slot_list.index)
-          
+
           -- Save
           elseif save_menu_list.index == 2 then
             if save_slot_list.index < #save_slot_list.entries then
@@ -370,18 +368,18 @@ function key(n,z)
             else
               save_pattern(save_slot_list.index)
             end
-            
+
           -- Delete
           elseif save_menu_list.index == 3 then
             if save_slot_list.index < #save_slot_list.entries then
               confirm_message = UI.Message.new({"Delete saved pattern?"})
               confirm_function = function() delete_pattern(save_slot_list.index) end
             end
-          end     
+          end
         end
       end
     end
-	screen_dirty = true
+  screen_dirty = true
   end
 end
 
@@ -389,58 +387,58 @@ end
 -- handle norns encoders --
 ---------------------------
 function enc(n,delta)
-	
+
   -- handle UI paging
   if n == 1 then
   -- Page scroll
     pages:set_index_delta(util.clamp(delta, -1, 1), false)
   end
-  
+
   if pages.index == 1 then
-        
+
     if n == 2 then       -- scale
       mode = util.clamp(mode + delta, 1, #music.SCALES)
       scale = music.generate_scale_of_length(root_num,music.SCALES[mode].name,8)
 
     elseif n == 3 then	-- tonic
-	        
+
       root_num = util.clamp(root_num + delta, 24, 96)
       tonic = music.note_num_to_name(root_num, 1)
       scale = music.generate_scale_of_length(root_num,music.SCALES[mode].name,8)
-                
+
     end
-        
-        
+
+
   elseif pages.index == 2 then
 
-    if alt and n == 2 then  
+    if alt and n == 2 then
       -- pattern length
       pattern_len = util.clamp(pattern_len + delta, 2, 16)
 
-		elseif n == 2 then           -- sequence direction
+    elseif n == 2 then           -- sequence direction
       playchoice = util.clamp(playchoice + delta, 1, #playmode)
-    
-    elseif alt and n == 3 then       
+
+    elseif alt and n == 3 then
 
     elseif n == 3 then      -- tempo
       params:delta("bpm",delta)
-            
+
     end
-    
+
 
 -- Load/Save
     elseif pages.index == 3 then
-      
+
       if n == 2 then
         save_slot_list:set_index_delta(util.clamp(delta, -1, 1))
-        
+
       elseif n == 3 then
         save_menu_list:set_index_delta(util.clamp(delta, -1, 1))
-        
+
       end
-        
+
   end
-    
+
   screen_dirty = true
 end
 
@@ -448,31 +446,15 @@ end
 -- handle norns screen --
 -------------------------
 function redraw()
-	
-  grid_device.event=function(data)
-       local parsed = midi.to_msg(data)
-       local y,x,vel= apcnome.notecoord(parsed.note,parsed.vel)
-       local z = parsed.type =='note_on' and 1 or 0
-        if z == 1 then
-            if steps[x] == y then
-                steps[x] = 0
-            else
-                steps[x] = y
-            end
-            grid_dirty = true
-        end
-        screen_dirty = true
-  end
-
   screen.clear()
-    
+
   if confirm_message then
     confirm_message:redraw()
-    
+
   else
-  
+
     pages:redraw()
-    
+
     if beat_clock.playing then
       playback_icon.status = 1
     else
@@ -481,7 +463,7 @@ function redraw()
     if pages.index ~= 3 then
       playback_icon:redraw()
     end
-    
+
     screen.line_width(1)
     screen.move(63,10)
     screen.level(10)
@@ -490,11 +472,11 @@ function redraw()
     screen.text_center(app_title)
 
     if pages.index == 1 then
-	    
+
       screen.font_size(8)
       screen.font_face(1)
 
-	    screen.move(5,30)
+      screen.move(5,30)
       screen.level(5)
       screen.text("Scale: ")
       screen.move(35,30)
@@ -507,7 +489,7 @@ function redraw()
       screen.level(15)
       screen.text(tonic)
 
-    elseif pages.index == 2 then      
+    elseif pages.index == 2 then
 
       screen.font_size(8)
       screen.font_face(1)
@@ -523,10 +505,10 @@ function redraw()
       screen.text("Tempo: ")
       screen.move(35,40)
       if beat_clock.external then
-      	screen.level(3)
+        screen.level(3)
         screen.text("External")
       else
-      	screen.level(15)
+        screen.level(15)
         screen.text(params:get("bpm").." bpm")
       end
       screen.move(80,30)
@@ -535,9 +517,9 @@ function redraw()
       screen.move(100,30)
       screen.level(15)
       screen.text(pattern_len)
-                
+
     elseif pages.index == 3 then
-	    
+
       screen.font_size(8)
       screen.font_face(1)
 
@@ -545,7 +527,7 @@ function redraw()
       save_menu_list:redraw()
 
     end
-  end  
+  end
   screen.update()
 end
 
@@ -554,15 +536,15 @@ end
 -- setup --
 -----------
 function init()
-	
-	screen.aa(1)
-  
-	-- initialize pattern with random notes
+
+  screen.aa(1)
+
+  -- initialize pattern with random notes
   for i=1,16 do
       table.insert(steps,math.random(0,8))
   end
 
-	-- set clock functions
+  -- set clock functions
   beat_clock.on_step = handle_step
   beat_clock.on_stop = reset_pattern
   beat_clock.on_select_internal = function() beat_clock:start() end
@@ -575,7 +557,7 @@ function init()
       redraw()
     end
   end
-  
+
   local grid_redraw_metro = metro.init()
   grid_redraw_metro.event = function()
     if grid_dirty and grid_device.device then
@@ -584,63 +566,63 @@ function init()
     end
   end
 
-	-- set up parameter menu
+  -- set up parameter menu
 
   params:add_number("bpm", "BPM", 1, 480, beat_clock.bpm)
   params:set_action("bpm", function(x) beat_clock:bpm_change(x) end)
   params:set("bpm", 72)
-    
+
   params:add_separator()
-    
-  params:add{type = "number", id = "grid_device", name = "Grid Device", min = 1, max = 4, default = 1, 
+
+  params:add{type = "number", id = "grid_device", name = "Grid Device", min = 1, max = 4, default = 1,
     action = function(value)
-      -- grid_device:all(0)
-      -- grid_device:refresh()
+      grid_device:all(0)
+      grid_device:refresh()
       -- grid_device = grid.connect(value)
   end}
-    
+
   params:add_option("grid_display", "Grid Display", { "Bar", "Scatter" }, grid_display or 2 and 1)
   params:set_action("grid_display", function(x) if x == 1 then grid_display = 1 else grid_display = 2 end end)
 
-	params:add_option("grid_rotation", "Grid Rotation", grid_display_options)
-	params:set_action("grid_rotation", function(x) 
+  params:add_option("grid_rotation", "Grid Rotation", grid_display_options)
+  params:set_action("grid_rotation", function(x)
     local val
     if x == 1 then val = 0 else val = 2 end
-		grid_device:all(0)
-		-- grid_device:rotation(val)
-		-- grid_device:refresh()
-	end) 
+    grid_device:all(0)
+    -- grid_device:rotation(val)
+    grid_device:refresh()
+  end)
 
   params:add_separator()
-    
-  params:add{type = "option", id = "output", name = "Output", options = out_options, 
+
+  params:add{type = "option", id = "output", name = "Output", options = out_options,
     action = function()all_notes_kill()end}
-        
-  params:add{type = "number", id = "midi_out_device", name = "MIDI Out Device", min = 1, max = 4, default = 1,
+
+  params:add{type = "number", id = "midi_out_device", name = "MIDI Out Device", min = 1, max = 4, default = 2,
     action = function(value)
     midi_out_device = midi.connect(value)
   end}
-  
+
   params:add{type = "number", id = "midi_out_channel", name = "MIDI Out Channel", min = 1, max = 16, default = 1,
     action = function(value)
       all_notes_kill()
       midi_out_channel = value
   end}
-    
-	params:add{type = "number", id = "clock_midi_in_device", name = "Clock MIDI In Device", min = 1, max = 4, default = 1,
-  	action = function(value)
-		midi_in_device = midi.connect(value)
+
+  params:add{type = "number", id = "clock_midi_in_device", name = "Clock MIDI In Device", min = 1, max = 4, default = 2,
+    action = function(value)
+    midi_in_device = midi.connect(value)
   end}
-    
-	params:add_option("clock", "Clock Source", {"Internal", "External"}, beat_clock.external or 2 and 1)
-	params:set_action("clock", function(x) beat_clock:clock_source_change(x) end)
-	
-	params:add{type = "option", id = "clock_out", name = "Clock Out", options = {"Off", "On"}, default = beat_clock.send or 2 and 1,
-  	action = function(value)
-		if value == 1 then beat_clock.send = false
-		else beat_clock.send = true end
+
+  params:add_option("clock", "Clock Source", {"Internal", "External"}, beat_clock.external or 2 and 1)
+  params:set_action("clock", function(x) beat_clock:clock_source_change(x) end)
+
+  params:add{type = "option", id = "clock_out", name = "Clock Out", options = {"Off", "On"}, default = beat_clock.send or 2 and 1,
+    action = function(value)
+    if value == 1 then beat_clock.send = false
+    else beat_clock.send = true end
   end}
-  
+
   params:add_separator()
 
   cs.AMP = cs.new(0,1,'lin',0,0.5,'')
@@ -680,28 +662,28 @@ function init()
 
   params:bang()
 
-	-- set up MIDI in
+  -- set up MIDI in
   midi_in_device.event = function(data)
-	beat_clock:process_midi(data)
+  beat_clock:process_midi(data)
     if not beat_clock.playing then
-  	  screen_dirty = true
-  	end
-	end
-    
-	-- UI
+      screen_dirty = true
+    end
+  end
+
+  -- UI
   pages = UI.Pages.new(1, 3)
   save_slot_list = UI.ScrollingList.new(5, 20, 1, {})
   save_slot_list.num_visible = 3
   save_slot_list.num_above_selected = 0
   save_menu_list = UI.List.new(92, 20, 1, save_menu_items)
   playback_icon = UI.PlaybackIcon.new(121, 55)
-  
+
   screen.aa(1)
 
   screen_refresh_metro:start(1 / SCREEN_FRAMERATE)
   grid_redraw_metro:start(1 / GRID_FRAMERATE)
 
-	beat_clock:stop()
+  beat_clock:stop()
 
   -- Data
   read_data()
@@ -710,5 +692,4 @@ end
 
 function cleanup ()
   beat_clock:stop()
-  grid_device.cleanup()
 end

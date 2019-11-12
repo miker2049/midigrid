@@ -3,7 +3,7 @@
 -- written to not be directly dependent on norns global variables
 
 local UI = {}
-
+local notecoords= include('lib/apc_note_map')
 -- refresh logic
 
 function UI.refresh()
@@ -114,9 +114,9 @@ function UI.init_grid(config)
   local my_grid = config.device
   UI.grid_key_callback = config.key_callback
   my_grid.event=function(data)
-    print("sup")
     local parsed = midi.to_msg(data)
-    local x, y, vel= apcnome.notecoord(parsed.note,parsed.vel)
+    local coords = notecoords[parsed.note]
+    local y, x = coords[1],coords[2]
     local s = parsed.type =='note_on' and 1 or 0
     UI.flash_event()
     UI.grid_key_callback(x, y, s)

@@ -4,7 +4,8 @@
 engine.name = 'Ack'
 
 local Ack = require 'ack/lib/ack'
-local UI =include('lib/ui-apcnome') 
+-- local UI =include('lib/ui-apcnome') 
+local UI = include('lib/ui')
 
 local ControlSpec = require 'controlspec'
 
@@ -270,7 +271,7 @@ local function init_ui()
 
   UI.init_grid {
     device = include('lib/apcnome'),
-    key_callback = function(y,x,state)
+    key_callback = function(x,y,state)
       print(state)
       if state == 1 then
         if cutting_is_enabled() and y == 8 then

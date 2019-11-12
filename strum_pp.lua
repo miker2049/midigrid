@@ -46,11 +46,12 @@ local direction = 1
 local k3_state = 1
 
 -- device vars
--- local grid_device = grid.connect()
 local grid_device = include('lib/apcnome') 
--- local midi_in_device = midi.connect()
+-- local midi_in_device = midi.connect(2)
+--add the apc as midi in device for cc mapping
+local midi_in_device = grid_device
 local midi_out_device = midi.connect(2)
--- local midi_out_channel
+local midi_out_channel
 
 -- scale vars
 local root_num = 60
@@ -189,7 +190,7 @@ end
 local function all_notes_kill()
     
   -- MIDI out
-  -- midi_out_device:note_off(note_playing, nil)
+  midi_out_device:note_off(note_playing, nil)
   note_playing = nil
 end
 
@@ -254,7 +255,7 @@ function handle_step()
             -- MIDI out
         if (params:get("output") == 2 or params:get("output") == 3) then
             if note_playing ~= nil then
-                -- midi_out_device:note_off(note_playing,nil)
+                midi_out_device:note_off(note_playing,nil)
             end
             note_playing = music.freq_to_note_num(music.note_num_to_freq(scale[steps[position]]),1)
             midi_out_device:note_on(note_playing,vel*100)
@@ -267,34 +268,19 @@ end
 -------------------------
 -- handle grid presses --
 -------------------------
---  function grid_device.key(x,y,z)
+ function grid_device.key(x,y,z)
+   print(x,y,z)
+    if z == 1 then
+        if steps[x] == y then
+            steps[x] = 0
+        else
+            steps[x] = y
+        end
+        grid_dirty = true
+    end
+    screen_dirty = true
+end
 
---     if z == 1 then
---         if steps[x] == y then
---             steps[x] = 0
---         else
---             steps[x] = y
---         end
---         grid_dirty = true
---     end
---     screen_dirty = true
--- end
-
-function grid_device.event(data)
-   local parsed = midi.to_msg(data)
-   local y,x,vel= apcnome.notecoord(parsed.note,parsed.vel)
-   local z = parsed.type =='note_on' and 1 or 0
-   if z == 1 then
-     if steps[x] == y then
-       steps[x] = 0
-     else
-       steps[x] = y
-     end
-     grid_dirty = true
-   end
-   screen_dirty = true
-   print("hey")
- end
 ---------------------
 -- redraw the grid --
 ---------------------
@@ -304,7 +290,9 @@ function grid_redraw()
          if grid_display == 1 then
             if steps[i] ~= 0 then
                 for j=0,7 do
-                    grid_device:led(i,steps[i]+j,i==position and 12 or (2+j))
+                  local lit=steps[i]<=j and 0 or 9
+                  grid_device:led(i,j+1,i==position and 12 or lit)
+                    -- grid_device:led(i,steps[i]+j,i==position and 12 or (2+j))
                 end
             end
         else
@@ -328,7 +316,7 @@ function key(n,z)
     if alt and n == 2 then 
 
       steps = {}
-      for i=1,16 do
+      for i=1,8 do
         table.insert(steps,math.random(0,8))
       end
 
@@ -460,20 +448,6 @@ end
 -------------------------
 function redraw()
 	
-  grid_device.event=function(data)
-    local parsed = midi.to_msg(data)
-    local y,x,vel= apcnome.notecoord(parsed.note,parsed.vel)
-    local z = parsed.type =='note_on' and 1 or 0
-    if z == 1 then
-      if steps[x] == y then
-        steps[x] = 0
-      else
-        steps[x] = y
-      end
-      grid_dirty = true
-    end
-    screen_dirty = true
-  end
   screen.clear()
     
   if confirm_message then
@@ -568,7 +542,7 @@ function init()
 	screen.aa(1)
   
 	-- initialize pattern with random notes
-  for i=1,16 do
+  for i=1,8 do
       table.insert(steps,math.random(0,8))
   end
 
@@ -607,7 +581,6 @@ function init()
       grid_device:all(0)
       grid_device:refresh()
       -- grid_device = grid.connect(value)
-      grid_device = include('lib/apcnome')
   end}
     
   params:add_option("grid_display", "Grid Display", { "Bar", "Scatter" }, grid_display or 2 and 1)
@@ -627,18 +600,18 @@ function init()
   params:add{type = "option", id = "output", name = "Output", options = out_options, 
     action = function()all_notes_kill()end}
         
-  params:add{type = "number", id = "midi_out_device", name = "MIDI Out Device", min = 1, max = 4, default = 1,
+  params:add{type = "number", id = "midi_out_device", name = "MIDI Out Device", min = 1, max = 4, default = 2,
     action = function(value)
     midi_out_device = midi.connect(value)
   end}
   
-  params:add{type = "number", id = "midi_out_channel", name = "MIDI Out Channel", min = 1, max = 16, default = 1,
+  params:add{type = "number", id = "midi_out_channel", name = "MIDI Out Channel", min = 1, max = 16, default = 2,
     action = function(value)
       all_notes_kill()
       midi_out_channel = value
   end}
     
-	params:add{type = "number", id = "clock_midi_in_device", name = "Clock MIDI In Device", min = 1, max = 4, default = 1,
+	params:add{type = "number", id = "clock_midi_in_device", name = "Clock MIDI In Device", min = 1, max = 4, default = 2,
   	action = function(value)
 		midi_in_device = midi.connect(value)
   end}

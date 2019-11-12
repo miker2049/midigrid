@@ -7,6 +7,14 @@ local apcgrid ={{56,57,58,59,60,61,62,63},
                 {8,9,10,11,12,13,14,15},
                 {0,1,2,3,4,5,6,7}
               }
+local apcnotecoords={}
+
+for i,v in ipairs(apcgrid) do
+  for j,k in ipairs(v) do
+    apcnotecoords[k]={j,i}
+  end
+end
+
 local function toBits(num)
   -- returns a table of bits, least significant first.
   local t={} -- will contain the bits
@@ -97,25 +105,42 @@ function apcnome.to_data(msg)
   end
 end
 
-setmetatable(apcnome,{ledbuf={}})
-function apcnome.notecoord(note,vel)
-  local x = (note%8)+1
-  local y = 7 - math.floor(note/8)+1
-  return x,y,vel
-end
+-- setmetatable(apcnome,{ledbuf={}})
+-- function apcnome.notecoord(note,vel)
+--   local x = (note%8)+1
+--   local y = 7 - math.floor(note/8)+1
+--   --dont know why I have to reverse it but ok TODO
+--   return x,y,vel
+-- end
 
 function apcnome:led(x, y, z) 
-  -- print("led!")
   if self.device then
     chan = 1
-    note = apcgrid[x][y]
+    --flag reversed here because thats actually what it is in lua table!!! this is clearer I think
+    note = ((x<9 and x>0) and (y<9 and y>0)) and apcgrid[y][x] or null 
     vel = brightness(z)
-    -- self:note_on(note,vel,chan)
-    local data = apcnome.to_data({type="note_on",ch=1,note=note,vel=vel})
-    -- tab.print(data)
-    for i,v in ipairs(data) do
-      table.insert(self.ledbuf,data[i])
+    if note then
+      local data = apcnome.to_data({type="note_on",ch=1,note=note,vel=vel})
+      for i,v in ipairs(data) do
+        table.insert(self.ledbuf,data[i])
+      end
+    else
+      --debugger
+      print("no note found! coordinates....  x:"..x.."  y:"..y.."  z:"..z)
     end
+  end
+end
+
+function apcnome.event(data)
+  local parsed = midi.to_msg(data)
+  local coords = apcnotecoords[parsed.note]
+  local x, y
+  if coords then
+    x, y = coords[1],coords[2] 
+    local s = parsed.type =='note_on' and 1 or 0
+    apcnome.key(x,y,s)
+  else
+    print("missing coords!")
   end
 end
 
@@ -125,6 +150,7 @@ function apcnome:refresh()
     self.ledbuf={}
   end
 end
+
 function apcnome:all(vel)
   if self.device then
     self.ledbuf={}
@@ -140,7 +166,7 @@ function apcnome:all(vel)
       end
       -- self:note_on(apcgrid[x][y],brightness(vel),1)
       -- if this is needed
-      -- self:refresh()
+      self:refresh()
     end
   end
 end
