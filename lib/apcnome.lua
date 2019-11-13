@@ -94,6 +94,12 @@ local to_data = {
 --- convert msg to data (midi bytes).
 -- @tparam table msg : 
 -- @treturn table data : table of midi status and data bytes
+
+--here is the connection
+apcnome = midi.connect()
+--here is our ledbuf to buffer data just like a real grid
+apcnome.ledbuf={}
+
 function apcnome.to_data(msg)
   if msg.type then
     return to_data[msg.type](msg)
@@ -101,11 +107,6 @@ function apcnome.to_data(msg)
     error('failed to serialize midi message')
   end
 end
-
---here is the connection
-apcnome = midi.connect()
---here is our ledbuf to buffer data just like a real grid
-apcnome.ledbuf={}
 
 function apcnome:led(x, y, z) 
   if self.device then
