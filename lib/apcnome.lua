@@ -1,7 +1,8 @@
-[[--
-cheapskate lib for getting midi grid devices to behave like monome grid devices 
+-- [[--
+-- cheapskate lib for getting midi grid devices to behave like monome grid devices 
+--   --]]
 
-  --]]
+
 --here we have the 'grid' this looks literally like the grid notes as they are mapped on the apc, they can be changed for other devices
 --note though, that a call to this table will look backwards, i.e, to get the visual x=1 and y=2, you have to enter apcgrid[2][1], not the other way around!
 local apcgrid ={{56,57,58,59,60,61,62,63},
