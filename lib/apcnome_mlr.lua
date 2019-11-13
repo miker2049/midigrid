@@ -1,9 +1,3 @@
-[[--
-cheapskate lib for getting midi grid devices to behave like monome grid devices 
-
-  --]]
---here we have the 'grid' this looks literally like the grid notes as they are mapped on the apc, they can be changed for other devices
---note though, that a call to this table will look backwards, i.e, to get the visual x=1 and y=2, you have to enter apcgrid[2][1], not the other way around!
 local apcgrid ={{56,57,58,59,60,61,62,63},
                 {48,49,50,51,52,53,54,55},
                 {40,41,42,43,44,45,46,47},
@@ -13,21 +7,21 @@ local apcgrid ={{56,57,58,59,60,61,62,63},
                 {8,9,10,11,12,13,14,15},
                 {0,1,2,3,4,5,6,7}
               }
-
---here, using the grid above, we generate the table to help us go the other way around
---so, if you press a midi note and you wanna know what it is, this will have an index with our coordinates
-local apcnotecoords={}
-
-for i,v in ipairs(apcgrid) do
-  for j,k in ipairs(v) do
-    apcnotecoords[k]={j,i}
+local function toBits(num)
+  -- returns a table of bits, least significant first.
+  local t={} -- will contain the bits
+  while num>0 do
+    local rest=math.fmod(num,2)
+    t[#t+1]=rest
+    num=(num-rest)/2
   end
+  return t
 end
 
 
---here, the function expects a brightness val and spits out another val so your midi controller can understand, these values are generally great for apc with most scripts, but will also need to be adjusted for other controllers!
---corresponds here to the 4 available states on apc: 0(off), 1(green) , 3(yellow), 5(red)
+
 local function brightness(val)
+  --corresponds here to the 4 available states on apc: 0(off), 1(green) , 3(yellow), 5(red)
   if val == 0 then
     return 0
   elseif (val > 0) and (val < 8) then
@@ -40,15 +34,38 @@ local function brightness(val)
     return 0
   end
 end
---these are the keys in the apc to the sides of our apc, not necessary for strict grid emulation but handy!
---they are up to down, so 82 is the auxkey to row 1
+--these are the keys in the apc to the side of our apcapcnome
+--they are up to down, so 82 is the auxkey to row 0
 local auxcol = {82,83,84,85,86,87,88,89}
---left to right, 64 is aux key to column 1
-local auxrow = {64,65,66,67,68,69,70,71}
+local auxrow = {64,65,66,67,68,69,70,71}--TODO
+local shift = 98
 
---here is midi helper functions I have in here directly... could probably just call them from the midi class but feels better to have them in here
+local mlr_nav_map = {auxrow[1],auxrow[2],auxrow[3],nil,auxrow[4],auxrow[5],auxrow[6],auxrow[7],nil,nil,nil,nil,nil,nil,auxrow[8],shift} 
+local mlr_track_map = {nil,1,3,5,7} 
+local function mlrmap(x,y,vel)
+  local note
+  if y==1 then
+   note = mlr_nav_map[x]
+  elseif y > 1 and y < 6 then
+    local thisx, thisy
+    thisy = mlr_track_map[y]
+    if x > 8 then
+      thisx = x-8
+      thisy=thisy+1
+    end
+    note = apcgrid[thisy][thisx]
+  end
+  return note
+end
+
+function apcnome.mlrcoord(note,vel)
+
+end
+
+
 --From midi.core...
 local to_data = {
+  -- FIXME: should all subfields have default values (ie note/vel?)
   note_on = function(msg)
       return {0x90 + (msg.ch or 1) - 1, msg.note, msg.vel or 100}
     end,
@@ -87,9 +104,11 @@ local to_data = {
     end,
   song_select = function(msg)
       return {0xf3, msg.val}
-    end
+  end
 }
-
+--///////////////////////
+apcnome = midi.connect()
+apcnome.ledbuf={}
 --- convert msg to data (midi bytes).
 -- @tparam table msg : 
 -- @treturn table data : table of midi status and data bytes
@@ -101,16 +120,15 @@ function apcnome.to_data(msg)
   end
 end
 
---here is the connection
-apcnome = midi.connect()
---here is our ledbuf to buffer data just like a real grid
-apcnome.ledbuf={}
+setmetatable(apcnome,{ledbuf={}})
+
 
 function apcnome:led(x, y, z) 
   if self.device then
     chan = 1
-    --flag reversed here because thats actually what it is in lua table!!!, see above. this is clearer either way I think
-    note = ((x<9 and x>0) and (y<9 and y>0)) and apcgrid[y][x] or null 
+    --flag reversed here because thats actually what it is in lua table!!! this is clearer I think
+    -- note = ((x<9 and x>0) and (y<9 and y>0)) and apcgrid[y][x] or null 
+    note = mlrmap(x,y)
     vel = brightness(z)
     if note then
       local data = apcnome.to_data({type="note_on",ch=1,note=note,vel=vel})
@@ -118,34 +136,18 @@ function apcnome:led(x, y, z)
         table.insert(self.ledbuf,data[i])
       end
     else
-      --debugger, probably want to comment this out if you are being messyy
+      --debugger
       print("no note found! coordinates....  x:"..x.."  y:"..y.."  z:"..z)
     end
   end
 end
 
---kinda the hackiest part, need to separate it out from other midi events
-function apcnome.event(data)
-  local parsed = midi.to_msg(data)
-  local coords = apcnotecoords[parsed.note]
-  local x, y
-  if coords then
-    x, y = coords[1],coords[2] 
-    local s = parsed.type =='note_on' and 1 or 0
-    apcnome.key(x,y,s)
-  else
-    print("missing coords!")
-  end
-end
-
---sending our buff
 function apcnome:refresh() 
   if self.device then
     self:send(self.ledbuf)
     self.ledbuf={}
   end
 end
-
 function apcnome:all(vel)
   if self.device then
     self.ledbuf={}
@@ -159,10 +161,10 @@ function apcnome:all(vel)
           table.insert(self.ledbuf,data[i])
         end
       end
-      -- it is unclear to me sometimes if a call to all in a regular grid requires a subsequent refresh, have this here in case
+      -- self:note_on(apcgrid[x][y],brightness(vel),1)
+      -- if this is needed
       -- self:refresh()
     end
   end
 end
-
 return apcnome

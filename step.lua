@@ -4,7 +4,6 @@
 engine.name = 'Ack'
 
 local Ack = require 'ack/lib/ack'
--- local UI =include('lib/ui-apcnome') 
 local UI = include('lib/ui')
 
 local ControlSpec = require 'controlspec'
