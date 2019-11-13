@@ -1,0 +1,76 @@
+
+* norns cheapskate library 
+  A few helper scripts for emulating and using midi grids like a monome grid, on the monome norns.
+  Two scripts in the lib folder, `apcnome.lua` and `apcnome_2pages.lua` are the beginning of something more robust, but for now they will allow one to use the akai apc mini as a grid.  Either just straight as 64 grid, or in 2 pages mode which emulates a full 128 grid and you can just switch the two views with the left and right arrow buttons on the apc.  
+
+** instructions
+   `apcnome.lua` is documented in the script itself, look at the top and change your table grid based off of what you got 
+
+then, all you need to do is change a script wherever it says `grid.connect` to `include(lib/apcnome)` or `include(`lib/apcnome_2pages`)
+
+Make sure your apc is the first midi device, and be sure to tell the norns script to only connect to other midi devices otherwise 
+** todos
+*** TODO add cols and rows function 
+*** TODO make page changing more efficient code wise
+*** TODO make some demonstration ports that are little more instructive
+*** TODO consider how to make this more sensible with the midi device number thing... 
+*** TODO make some demonstrations, make launchpad untz instrument stuff built in
+** scripts
+   Notes for norns scripts that either work or I wanna make work, or need a little love to make work
+*** step
+    works, need to block out midi
+*** strum
+    works but with midi blocking
+*** reverse engineering mlr for apc mini
+**** code notes
+***** variable initializing
+***** function update_tempo
+**** ideas
+***** the nav bar is remapped thusly:
+****** the three modes are haux 1,2,3
+****** the four patterns are haux 4,5,6,7
+****** q is haux 8
+****** alt is shift
+***** rec / speed mode
+****** play is vaux[track]
+****** rec is track[1]
+****** focus track[2] and [3
+****** just get rid of the speed stuff, can use interface for that
+***** simplest:  change nave bar to haux, then remap anything x>8 to the lower row, and spread out the rows
+      if y == 1 then haux
+      if x > 8 then x-8, y+1
+      if y = 2, y = 1
+      if y = 3, y = 3
+      if y = 4, y = 5
+      if y = 5, y = 7
+*** earthsea for apc mini
+**** this is pretty much ready to go, use the earthsea from the ash library
+     its glitchy and not sure why
+     working but glitchy?
+*** vials for apc mini
+**** I think this can be implemented as just split view toggle
+     if view2 then {new mapping}
+**** status
+     works pretty great two pages
+*** meadowphysics, this is one to look at
+**** basic mode is simple, just subtract by half
+**** Reset, Output, and Speeds
+     this just needs a speed interface...
+     if (config)
+**** if rules then choose with encoder 
+*** strides
+    this one should be easy too, the second half of the grid is just pulled up from an alt key
+*** shfts
+    a toggle button for the two views
+*** cranes
+    this is split in two, but horizontally, so going to need to be a little more sophisticated in the mapping
+*** ekombi
+    just make it half as precise
+*** takt
+    maybe just a two pager?
+*** foulplay
+    only 64 ready to go!
+*** zellen
+    good to go with rows and cols, and adjusting led values
+*** isoseq
+    just the max pattern length needs to change
