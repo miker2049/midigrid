@@ -1,46 +1,16 @@
-
-# Table of Contents
-
-1.  [norns cheapskate library](#org0e546c5)
-    1.  [instructions](#org42ed9d4)
-    2.  [todos](#orgf42c8e5)
-        1.  [add cols and rows function](#org83f05cc)
-        2.  [make page changing more efficient code wise](#org77afa5e)
-        3.  [make some demonstration ports that are little more instructive](#orga40afa7)
-        4.  [consider how to make this more sensible with the midi device number thing&#x2026;](#org64505c4)
-        5.  [make some demonstrations, make launchpad untz instrument stuff built in](#org31b607f)
-    3.  [scripts](#org261617c)
-        1.  [step](#orgedb845e)
-        2.  [strum](#org9cccd1f)
-        3.  [reverse engineering mlr for apc mini](#org8a675de)
-        4.  [earthsea for apc mini](#org9841e43)
-        5.  [vials for apc mini](#org62ae768)
-        6.  [meadowphysics, this is one to look at](#orgc8f0e19)
-        7.  [strides](#org83a4422)
-        8.  [shfts](#org3e15793)
-        9.  [cranes](#orgc623d97)
-        10. [ekombi](#orgfd59ba4)
-        11. [takt](#orgf0eced5)
-        12. [foulplay](#org44f2df4)
-        13. [zellen](#org58ec7ff)
-        14. [isoseq](#org0602329)
-
-
-<a id="org0e546c5"></a>
-
 # norns cheapskate library
 
 A few helper scripts for emulating and using midi grids like a monome grid, on the monome norns.
-Two scripts in the lib folder, \`apcnome.lua\` and \`apcnome<sub>2pages.lua</sub>\` are the beginning of something more robust, but for now they will allow one to use the akai apc mini as a grid.  Either just straight as 64 grid, or in 2 pages mode which emulates a full 128 grid and you can just switch the two views with the left and right arrow buttons on the apc.  
+Two scripts in the lib folder, `apcnome.lua` and `apcnome<sub>2pages.lua</sub>` are the beginning of something more robust, but for now they will allow one to use the akai apc mini as a grid.  Either just straight as 64 grid, or in 2 pages mode which emulates a full 128 grid and you can just switch the two views with the left and right arrow buttons on the apc.  
 
 
 <a id="org42ed9d4"></a>
 
 ## instructions
 
-\`apcnome.lua\` is documented in the script itself, look at the top and change your table grid based off of what you got 
+\apcnome.lua\ is documented in the script itself, look at the top and change your table grid based off of what you got 
 
-then, all you need to do is change a script wherever it says \`grid.connect\` to \`include(lib/apcnome)\` or \`include(\`lib/apcnome<sub>2pages</sub>\`)
+then, all you need to do is change a script wherever it says `grid.connect` to `include(lib/apcnome)` or `include(lib/apcnome/2pages)`
 
 Make sure your apc is the first midi device, and be sure to tell the norns script to only connect to other midi devices otherwise 
 
