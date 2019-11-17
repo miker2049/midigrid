@@ -111,6 +111,8 @@ apcnome = midi.connect()
 
 apcnome.ledbuf={}
 
+apcnome.rows = #apcgrid[1]
+apcnome.cols = #apcgrid
 function apcnome.to_data(msg)
   if msg.type then
     return to_data[msg.type](msg)
@@ -239,6 +241,9 @@ function apcnome:all(vel)
 end
 --init on page 1
 apcnome:all(0)
+for i=0,126 do
+  apcnome:send({type="note_on",ch=1,note=i,vel=0})
+end
 apcnome:send({type="note_on",ch=1,note=auxrow[3],vel=1})
 
 return apcnome

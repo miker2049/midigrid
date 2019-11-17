@@ -10,7 +10,8 @@ then, all you need to do is change a script wherever it says `grid.connect` to `
 
 Make sure your apc is the first midi device, and be sure to tell the norns script to only connect to other midi devices otherwise 
 ** todos
-*** TODO add cols and rows function 
+*** DONE add cols and rows function 
+    CLOSED: [2019-11-13 Wed 17:58]
 *** TODO make page changing more efficient code wise
 *** TODO make some demonstration ports that are little more instructive
 *** TODO consider how to make this more sensible with the midi device number thing... 

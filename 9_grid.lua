@@ -6,7 +6,7 @@
 --   \\\\////  GRID
 --   \\\\////
 --
-
+local apcnome = include('lib/apcnome')
 
 local viewport = { width = 128, height = 64, frame = 0 }
 local focus = { x = 1, y = 1, brightness = 15 }
@@ -24,7 +24,8 @@ function init()
 end
 
 function connect()
-  g = include('lib/apcnome_2pages')--grid.connect()
+  -- g = include('lib/apcnome_2pages')--grid.connect()
+  g = apcnome.connect()
   g.key = on_grid_key
   g.add = on_grid_add
   g.remove = on_grid_remove

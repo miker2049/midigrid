@@ -1,8 +1,91 @@
 -- [[--
+
 -- cheapskate lib for getting midi grid devices to behave like monome grid devices 
 --   --]]
+-- local apcnome ={}
+local apcnome= { 
+  midi_id = nil
+}
+local og_dev_add, og_dev_remove
 
+function apcnome.find_midi_device_id()
+    local found_id = nil
+    for i, dev in pairs(midi.devices) do
+        local name = string.lower(dev.name)
+        if apcnome.name_matches(name) then
+            found_id = dev.id
+        end
+    end
+    return found_id
+end
 
+function apcnome.connect(dummy_id)
+    apcnome.set_midi_handler()
+    return apcnome
+end
+
+function apcnome.set_key_handler(key_handler)
+    apcnome.set_midi_handler()
+    apcnome.key = key_handler
+end
+
+function apcnome.setup_connect_handling()
+    og_dev_add = midi.add
+    og_dev_remove = midi.remove
+
+    midi.add = apcnome.handle_dev_add
+    midi.remove = apcnome.handle_dev_remove
+end
+
+function apcnome.name_matches(name)
+    return (name == 'apc mini')
+end
+
+function apcnome.handle_dev_add(id, name, dev)
+    og_dev_add(id, name, dev)
+
+    apcnome.update_devices()
+
+    if (apcnome.name_matches(name)) and (id ~= apcnome.midi_id) then
+        apcnome.midi_id = id
+        apcnome.device = dev
+        apcnome.set_midi_handler()
+    end
+end
+
+function apcnome.handle_dev_remove(id)
+    og_dev_remove(id)
+    apcnome.update_devices()
+end
+
+function apcnome.set_midi_handler()
+    if apcnome.midi_id == nil then
+        return
+    end
+
+    if midi.devices[apcnome.midi_id] ~= nil then
+        midi.devices[apcnome.midi_id].event = apcnome.handle_key_midi
+        apcnome.device=midi.devices[apcnome.midi_id] 
+    else
+        apcnome.midi_id = nil
+    end
+end
+function apcnome.cleanup() 
+  apcnome.key = nil
+end
+function apcnome.update_devices() 
+  midi.update_devices()
+
+  local new_id = apcnome.find_midi_device_id()
+
+  -- Only set id/handler when helpful
+  if (apcnome.midi_id ~= new_id) and (new_id ~= nil) then
+    apcnome.midi_id = new_id
+    return apcnome.set_midi_handler()
+  end
+
+  return (apcnome.midi_id ~= nil)
+end
 --here we have the 'grid' this looks literally like the grid notes as they are mapped on the apc, they can be changed for other devices
 --note though, that a call to this table will look backwards, i.e, to get the visual x=1 and y=2, you have to enter apcgrid[2][1], not the other way around!
 local apcgrid ={{56,57,58,59,60,61,62,63},
@@ -49,56 +132,33 @@ local auxrow = {64,65,66,67,68,69,70,71}
 
 --here is midi helper functions I have in here directly... could probably just call them from the midi class but feels better to have them in here
 --From midi.core...
-local to_data = {
-  note_on = function(msg)
-      return {0x90 + (msg.ch or 1) - 1, msg.note, msg.vel or 100}
-    end,
-  note_off = function(msg)
-      return {0x80 + (msg.ch or 1) - 1, msg.note, msg.vel or 100}
-    end,
-  cc = function(msg)
-      return {0xb0 + (msg.ch or 1) - 1, msg.cc, msg.val}
-    end,
-  pitchbend = function(msg)
-      return {0xe0 + (msg.ch or 1) - 1, msg.val & 0x7f, (msg.val >> 7) & 0x7f}
-    end,
-  key_pressure = function(msg)
-      return {0xa0 + (msg.ch or 1) - 1, msg.note, msg.val}
-    end,
-  channel_pressure = function(msg)
-      return {0xd0 + (msg.ch or 1) - 1, msg.val}
-    end,
-  program_change = function(msg)
-      return {0xc0 + (msg.ch or 1) - 1, msg.val}
-    end,
-  start = function(msg)
-      return {0xfa}
-    end,
-  stop = function(msg)
-      return {0xfc}
-    end,
-  continue = function(msg)
-      return {0xfb}
-    end,
-  clock = function(msg)
-      return {0xf8}
-    end,
-  song_position = function(msg)
-      return {0xf2, msg.lsb, msg.msb}
-    end,
-  song_select = function(msg)
-      return {0xf3, msg.val}
-    end
-}
 
---- convert msg to data (midi bytes).
--- @tparam table msg : 
--- @treturn table data : table of midi status and data bytes
 
 --here is the connection
-apcnome = midi.connect()
+-- apcnome = midi.connect()
 --here is our ledbuf to buffer data just like a real grid
 apcnome.ledbuf={}
+apcnome.rows = #apcgrid[1]
+apcnome.cols = #apcgrid
+
+function apcnome.handle_key_midi(event)
+  -- tab.print(event)
+  local note = event[2]
+  local coords = apcnotecoords[note]
+  local x, y
+  if coords then
+    x, y = coords[1],coords[2] 
+    print(x,y)
+    -- local s = parsed.type =='note_on' and 1 or 0
+    local s = event[1] ==0x90 and 1 or 0
+    if apcnome.key ~= nil then 
+      -- apcnome.key(apcnome.midi_id, y, x, s)
+      apcnome.key(x, y, s)
+    end
+  else
+    print("missing coords!")
+  end
+end
 
 function apcnome.to_data(msg)
   if msg.type then
@@ -115,10 +175,10 @@ function apcnome:led(x, y, z)
     note = ((x<9 and x>0) and (y<9 and y>0)) and apcgrid[y][x] or null 
     vel = brightness(z)
     if note then
-      local data = apcnome.to_data({type="note_on",ch=1,note=note,vel=vel})
-      for i,v in ipairs(data) do
-        table.insert(self.ledbuf,data[i])
-      end
+      -- local data = apcnome.to_data({type="note_on",ch=1,note=note,vel=vel})
+      table.insert(self.ledbuf,0x90)
+      table.insert(self.ledbuf,note)
+      table.insert(self.ledbuf,vel)
     else
       --debugger, probably want to comment this out if you are being messyy
       print("no note found! coordinates....  x:"..x.."  y:"..y.."  z:"..z)
@@ -126,24 +186,12 @@ function apcnome:led(x, y, z)
   end
 end
 
---kinda the hackiest part, need to separate it out from other midi events
-function apcnome.event(data)
-  local parsed = midi.to_msg(data)
-  local coords = apcnotecoords[parsed.note]
-  local x, y
-  if coords then
-    x, y = coords[1],coords[2] 
-    local s = parsed.type =='note_on' and 1 or 0
-    apcnome.key(x,y,s)
-  else
-    print("missing coords!")
-  end
-end
 
 --sending our buff
 function apcnome:refresh() 
   if self.device then
-    self:send(self.ledbuf)
+    -- self:send(self.ledbuf)
+    midi.devices[apcnome.midi_id]:send(self.ledbuf)
     self.ledbuf={}
   end
 end
@@ -156,10 +204,9 @@ function apcnome:all(vel)
         chan = 1
         note = apcgrid[x][y]
         vel = brightness(vel)
-        local data = apcnome.to_data({type="note_on",ch=1,note=note,vel=vel})
-        for i,v in ipairs(data) do
-          table.insert(self.ledbuf,data[i])
-        end
+        table.insert(self.ledbuf,0x90)
+        table.insert(self.ledbuf,note)
+        table.insert(self.ledbuf,vel)
       end
       -- it is unclear to me sometimes if a call to all in a regular grid requires a subsequent refresh, have this here in case
       -- self:refresh()
@@ -167,4 +214,6 @@ function apcnome:all(vel)
   end
 end
 
+apcnome.setup_connect_handling()
+apcnome.update_devices()
 return apcnome
