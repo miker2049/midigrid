@@ -3,6 +3,14 @@
 -- cheapskate lib for getting midi grid devices to behave like monome grid devices 
 --   --]]
 -- local apcnome ={}
+--two things are run before returning, 'setup_connect_handling' and 'update_devices'
+--setup_connect_handling copies over 'og' midi add and remove callbacks, and gives its own add and remove handlers
+--add and remove handlers:
+--update devices: 
+--find_midi_devices: iterates through 'midi.devices' to see if the name matches, then returns id, this system manages its own ids, which is why you have to initialize it and why
+--first, you connect to it, 'apcnome.connect', which returns a apcnome object and does 'set_midi_handler'
+--
+
 local apcnome= { 
   midi_id = nil
 }
@@ -58,6 +66,7 @@ function apcnome.handle_dev_remove(id)
     apcnome.update_devices()
 end
 
+--this already expects it to have Midi_id
 function apcnome.set_midi_handler()
     if apcnome.midi_id == nil then
         return
@@ -70,9 +79,11 @@ function apcnome.set_midi_handler()
         apcnome.midi_id = nil
     end
 end
+
 function apcnome.cleanup() 
   apcnome.key = nil
 end
+
 function apcnome.update_devices() 
   midi.update_devices()
 
@@ -160,13 +171,6 @@ function apcnome.handle_key_midi(event)
   end
 end
 
-function apcnome.to_data(msg)
-  if msg.type then
-    return to_data[msg.type](msg)
-  else
-    error('failed to serialize midi message')
-  end
-end
 
 function apcnome:led(x, y, z) 
   if self.device then
@@ -175,7 +179,6 @@ function apcnome:led(x, y, z)
     note = ((x<9 and x>0) and (y<9 and y>0)) and apcgrid[y][x] or null 
     vel = brightness(z)
     if note then
-      -- local data = apcnome.to_data({type="note_on",ch=1,note=note,vel=vel})
       table.insert(self.ledbuf,0x90)
       table.insert(self.ledbuf,note)
       table.insert(self.ledbuf,vel)
