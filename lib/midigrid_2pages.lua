@@ -158,32 +158,34 @@ midigrid.cols = #gridnotes
 
 
 function midigrid:led(x, y, z) 
-  gridbuf[x][y]=z
-  --if we aint on the right page dont bother
-  if x>8 and apcpage==1 then
-    return
-  end
-  if x<8 and apcpage==2 then
-    return
-  end
-
-  if self.device then
-    chan = 1
-
-    if apcpage==1 then
-      note = gridnotes[y][x] 
-    elseif apcpage==2 then
-      note = gridnotes[y][x-8]
+  if x < 16 and y<8 and x >0 and y >0 then
+    gridbuf[x][y]=z
+    --if we aint on the right page dont bother
+    if x>8 and apcpage==1 then
+      return
+    end
+    if x<8 and apcpage==2 then
+      return
     end
 
-    vel = brightness_handler(z)
-    if note then
-      table.insert(self.ledbuf,0x90)
-      table.insert(self.ledbuf,note)
-      table.insert(self.ledbuf,vel)
-    else
-      --debugger
-      print("no note found! coordinates....  x:"..x.."  y:"..y.."  z:"..z)
+    if self.device then
+      chan = 1
+
+      if apcpage==1 then
+        note = gridnotes[y][x] 
+      elseif apcpage==2 then
+        note = gridnotes[y][x-8]
+      end
+
+      vel = brightness_handler(z)
+      if note then
+        table.insert(self.ledbuf,0x90)
+        table.insert(self.ledbuf,note)
+        table.insert(self.ledbuf,vel)
+      else
+        --debugger
+        print("no note found! coordinates....  x:"..x.."  y:"..y.."  z:"..z)
+      end
     end
   end
 end
