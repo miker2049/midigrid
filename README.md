@@ -29,7 +29,7 @@ Then, in whatever script you are working in, it works well to override the globa
     --which allows this call to work with our midi grid
     local g = grid.connect()
 
-Previous issues with the midi device being blocked are resolved with this new implementation taken from ryanlaws [<https://github.com/ryanlaws/lunchpaid>][lunchpaid].
+Previous issues with the midi device being blocked are resolved with this new implementation taken from ryanlaws [lunchpaid](https://github.com/ryanlaws/lunchpaid).
 
 
 <a id="orgbb1c9c6"></a>
@@ -87,7 +87,7 @@ works but with midi blocking
 
 ### mlr64
 
-[<https://github.com/noiserock/custom64>][mlr64]
+[mlr64](https://github.com/noiserock/custom64)
 works!
 
 
