@@ -1,4 +1,5 @@
 
+
 # norns midigrid library
 
 A few helper scripts for emulating and using midi grids like a monome grid, on the monome norns.
@@ -6,7 +7,7 @@ A few helper scripts for emulating and using midi grids like a monome grid, on t
 Two scripts in the lib folder to include in scripts as 'grid', config files in the config folder for setups with different devices.
 
 
-<a id="org21e0a7d"></a>
+<a id="org23244c6"></a>
 
 ## instructions
 
@@ -29,69 +30,91 @@ Then, in whatever script you are working in, it works well to override the globa
     --which allows this call to work with our midi grid
     local g = grid.connect()
 
-Previous issues with the midi device being blocked are resolved with this new implementation taken from ryanlaws [<https://github.com/ryanlaws/lunchpaid>][lunchpaid].
+Previous issues with the midi device being blocked are resolved with this new implementation taken from ryanlaws [lunchpaid](<https://github.com/ryanlaws/lunchpaid>).
 
 
-<a id="orgbb1c9c6"></a>
+<a id="orgb475cd5"></a>
+
+## two page mode
+
+This script aims to emulate a 128 (16x8) grid by spreading a virtual grid buffer over two grid pages that you can toggle with auxiliary buttons
+
+
+<a id="orgd95a7df"></a>
+
+### apc mini
+
+By default, the left and right arrow buttons on the bottom row of buttons on the grid
+
+
+<a id="org8d9d20c"></a>
+
+### launchpad
+
+The toggle buttons are the top two column buttons in launchpad auxiliary column.  need to set them up so they can be the left and right arrows but this is non trivial as the top auxiliary buttons on the launchpad send control (176) messages not note on.
+
+
+<a id="org2220a83"></a>
 
 ## todos
 
 
-<a id="org0f0b0ee"></a>
+<a id="org2979fc0"></a>
 
 ### TODO add config files for launchpad (and untz maybe)
 
 
-<a id="org8ee85f7"></a>
+<a id="orgfb9e746"></a>
 
 ### TODO allow config files to overide led and all functions, for more native launchpad support
 
 
-<a id="org7925797"></a>
+<a id="org75aa3b0"></a>
 
 ### DONE add cols and rows function
 
 
-<a id="org8f6e950"></a>
+<a id="org04ac368"></a>
 
 ### DONE make page changing more efficient code wise
 
 
-<a id="org8107a1f"></a>
+<a id="org3b00ee5"></a>
 
 ### DONE consider how to make this more sensible with the midi device number thing&#x2026;
 
 
-<a id="orgfecddde"></a>
+<a id="org23362ea"></a>
 
 ## scripts
 
 Notes for norns scripts that either work or I wanna make work, or need a little love to make work
+all have only been tested on the apc mini
 
 
-<a id="orge11eba7"></a>
+<a id="orgd1a7656"></a>
 
 ### step
 
 works, need to block out midi
 
 
-<a id="org5f17dbf"></a>
+<a id="org4a0b355"></a>
 
 ### strum
 
 works but with midi blocking
 
 
-<a id="orge6d5076"></a>
+<a id="org1077a0a"></a>
 
 ### mlr64
 
-[<https://github.com/noiserock/custom64>][mlr64]
+[mlr64](https://github.com/noiserock/custom64)
 works!
 
 
-<a id="org34e4323"></a>
+<a id="org1065623"></a>
 
 ### earthsea for apc mini
 
@@ -101,7 +124,7 @@ works!
     working but glitchy?
 
 
-<a id="orgca53366"></a>
+<a id="org563c70e"></a>
 
 ### vials for apc mini
 
@@ -114,7 +137,7 @@ works!
     works pretty great two pages
 
 
-<a id="org91703a4"></a>
+<a id="org4f0d50f"></a>
 
 ### meadowphysics, this is one to look at
 
@@ -128,56 +151,56 @@ works!
 3.  if rules then choose with encoder
 
 
-<a id="org408340f"></a>
+<a id="org2780522"></a>
 
 ### strides
 
 this one should be easy too, the second half of the grid is just pulled up from an alt key
 
 
-<a id="org60c2a34"></a>
+<a id="orgd9cade2"></a>
 
 ### shfts
 
 a toggle button for the two views
 
 
-<a id="org1ab0ff3"></a>
+<a id="orgfc45182"></a>
 
 ### cranes
 
 this is split in two, but horizontally, so going to need to be a little more sophisticated in the mapping
 
 
-<a id="orgb09f2c2"></a>
+<a id="org617fd29"></a>
 
 ### ekombi
 
 just make it half as precise
 
 
-<a id="orga3741e4"></a>
+<a id="org462156d"></a>
 
 ### takt
 
 maybe just a two pager?
 
 
-<a id="org10026ce"></a>
+<a id="org42b704d"></a>
 
 ### foulplay
 
 only 64 ready to go!
 
 
-<a id="org6488fdb"></a>
+<a id="org42e7176"></a>
 
 ### zellen
 
 good to go with rows and cols, and adjusting led values
 
 
-<a id="orgba2b404"></a>
+<a id="org7827ad6"></a>
 
 ### isoseq
 

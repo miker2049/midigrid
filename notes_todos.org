@@ -26,6 +26,12 @@ Then, in whatever script you are working in, it works well to override the globa
 #+END_SRC
 
 Previous issues with the midi device being blocked are resolved with this new implementation taken from ryanlaws [https://github.com/ryanlaws/lunchpaid][lunchpaid].
+** two page mode
+   This script aims to emulate a 128 (16x8) grid by spreading a virtual grid buffer over two grid pages that you can toggle with auxiliary buttons
+*** apc mini
+    By default, the left and right arrow buttons on the bottom row of buttons on the grid
+*** launchpad
+    The toggle buttons are the top two column buttons in launchpad auxiliary column.  need to set them up so they can be the left and right arrows but this is non trivial as the top auxiliary buttons on the launchpad send control (176) messages not note on.
 ** todos
 *** TODO add config files for launchpad (and untz maybe)
 *** TODO allow config files to overide led and all functions, for more native launchpad support
