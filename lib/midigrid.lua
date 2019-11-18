@@ -13,7 +13,13 @@
 -----------------------------
 --loading up config file here
 -----------------------------
-local config = include('cheapskate/lib/apcmini_config')
+local config = include('midigrid/config/apcmini_config')
+-- local config = include('midigrid/config/launchpad_config')
+-- local config = include('midigrid/config/untz_config')
+-----------------------------
+-----------------------------
+-----------------------------
+
 local gridnotes = config.grid
 local brightness_handler = config.brightness_handler
 local device_name = config.device_name

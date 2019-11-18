@@ -3,6 +3,19 @@
 --  contains within itself a full 128 grid table, that can be viewed and played with by changing the two buttons at the bottom of the apc
 -- --]]
 
+-----------------------------
+--loading up config file here
+-----------------------------
+local config = include('midigrid/config/apcmini_config')
+-- local config = include('midigrid/config/launchpad_config')
+-----------------------------
+-----------------------------
+-----------------------------
+
+
+
+
+
 --start on "page" 1
 local apcpage=1
 
@@ -15,10 +28,6 @@ for i=1,16 do
   end
 end
 
------------------------------
---loading up config file here
------------------------------
-local config = include('cheapskate/lib/apcmini_config')
 local gridnotes = config.grid
 local brightness_handler = config.brightness_handler
 local device_name = config.device_name

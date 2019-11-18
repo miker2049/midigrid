@@ -1,49 +1,49 @@
 
-* norns cheapskate library 
+* norns midigrid library 
   A few helper scripts for emulating and using midi grids like a monome grid, on the monome norns.
-  Two scripts in the lib folder, `apcnome.lua` and `apcnome_2pages.lua` are the beginning of something more robust, but for now they will allow one to use the akai apc mini as a grid.  Either just straight as 64 grid, or in 2 pages mode which emulates a full 128 grid and you can just switch the two views with the left and right arrow buttons on the apc.  
 
+  Two scripts in the lib folder to include in scripts as 'grid', config files in the config folder for setups with different devices.
 ** instructions
-   `apcnome.lua` is documented in the script itself, look at the top and change your table grid based off of what you got 
+   ~midigrid.lua~ and ~apcmini_config.lua~ is documented in the scripts themselves, setting up a new config file also means it needs to be loaded into the script itself:
+ #+BEGIN_SRC lua 
+-----------------------------
+--loading up config file here
+-----------------------------
+local config = include('midigrid/config/apcmini_config')
+-- local config = include('midigrid/config/launchpad_config')
+-- local config = include('midigrid/config/untz_config')
+-----------------------------
+ #+END_SRC
 
-then, all you need to do is change a script wherever it says `grid.connect` to `include(lib/apcnome)` or `include(`lib/apcnome_2pages`)
+Then, in whatever script you are working in, it works well to override the global grid object with our own local one:
+#+BEGIN_SRC lua
+    --adding this to script
+    local grid = include('cheapskate/lib/midigrid')
+    --or this
+    local grid = include('cheapskate/lib/midigrid_2pages')
+    --which allows this call to work with our midi grid
+    local g = grid.connect()
+#+END_SRC
 
-Make sure your apc is the first midi device, and be sure to tell the norns script to only connect to other midi devices otherwise 
+Previous issues with the midi device being blocked are resolved with this new implementation taken from ryanlaws [https://github.com/ryanlaws/lunchpaid][lunchpaid].
 ** todos
+*** TODO add config files for launchpad (and untz maybe)
+*** TODO allow config files to overide led and all functions, for more native launchpad support
 *** DONE add cols and rows function 
     CLOSED: [2019-11-13 Wed 17:58]
-*** TODO make page changing more efficient code wise
-*** TODO make some demonstration ports that are little more instructive
-*** TODO consider how to make this more sensible with the midi device number thing... 
-*** TODO make some demonstrations, make launchpad untz instrument stuff built in
+*** DONE make page changing more efficient code wise
+    CLOSED: [2019-11-18 Mon 11:27]
+*** DONE consider how to make this more sensible with the midi device number thing... 
+    CLOSED: [2019-11-18 Mon 11:27]
 ** scripts
    Notes for norns scripts that either work or I wanna make work, or need a little love to make work
 *** step
     works, need to block out midi
 *** strum
     works but with midi blocking
-*** reverse engineering mlr for apc mini
-**** code notes
-***** variable initializing
-***** function update_tempo
-**** ideas
-***** the nav bar is remapped thusly:
-****** the three modes are haux 1,2,3
-****** the four patterns are haux 4,5,6,7
-****** q is haux 8
-****** alt is shift
-***** rec / speed mode
-****** play is vaux[track]
-****** rec is track[1]
-****** focus track[2] and [3
-****** just get rid of the speed stuff, can use interface for that
-***** simplest:  change nave bar to haux, then remap anything x>8 to the lower row, and spread out the rows
-      if y == 1 then haux
-      if x > 8 then x-8, y+1
-      if y = 2, y = 1
-      if y = 3, y = 3
-      if y = 4, y = 5
-      if y = 5, y = 7
+*** mlr64
+    [https://github.com/noiserock/custom64][mlr64]
+    works!
 *** earthsea for apc mini
 **** this is pretty much ready to go, use the earthsea from the ash library
      its glitchy and not sure why

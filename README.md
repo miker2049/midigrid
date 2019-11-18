@@ -1,114 +1,97 @@
-# norns cheapskate library
+
+# norns midigrid library
 
 A few helper scripts for emulating and using midi grids like a monome grid, on the monome norns.
-Two scripts in the lib folder, `apcnome.lua` and `apcnome<sub>2pages.lua</sub>` are the beginning of something more robust, but for now they will allow one to use the akai apc mini as a grid.  Either just straight as 64 grid, or in 2 pages mode which emulates a full 128 grid and you can just switch the two views with the left and right arrow buttons on the apc.  
+
+Two scripts in the lib folder to include in scripts as 'grid', config files in the config folder for setups with different devices.
 
 
-<a id="org42ed9d4"></a>
+<a id="org21e0a7d"></a>
 
 ## instructions
 
-\apcnome.lua\ is documented in the script itself, look at the top and change your table grid based off of what you got 
+`midigrid.lua` and `apcmini_config.lua` is documented in the scripts themselves, setting up a new config file also means it needs to be loaded into the script itself:
 
-then, all you need to do is change a script wherever it says `grid.connect` to `include(lib/apcnome)` or `include(lib/apcnome/2pages)`
+    -----------------------------
+    --loading up config file here
+    -----------------------------
+    local config = include('midigrid/config/apcmini_config')
+    -- local config = include('midigrid/config/launchpad_config')
+    -- local config = include('midigrid/config/untz_config')
+    -----------------------------
 
-Make sure your apc is the first midi device, and be sure to tell the norns script to only connect to other midi devices otherwise 
+Then, in whatever script you are working in, it works well to override the global grid object with our own local one:
+
+    --adding this to script
+    local grid = include('cheapskate/lib/midigrid')
+    --or this
+    local grid = include('cheapskate/lib/midigrid_2pages')
+    --which allows this call to work with our midi grid
+    local g = grid.connect()
+
+Previous issues with the midi device being blocked are resolved with this new implementation taken from ryanlaws [<https://github.com/ryanlaws/lunchpaid>][lunchpaid].
 
 
-<a id="orgf42c8e5"></a>
+<a id="orgbb1c9c6"></a>
 
 ## todos
 
 
-<a id="org83f05cc"></a>
+<a id="org0f0b0ee"></a>
 
-### TODO add cols and rows function
-
-
-<a id="org77afa5e"></a>
-
-### TODO make page changing more efficient code wise
+### TODO add config files for launchpad (and untz maybe)
 
 
-<a id="orga40afa7"></a>
+<a id="org8ee85f7"></a>
 
-### TODO make some demonstration ports that are little more instructive
-
-
-<a id="org64505c4"></a>
-
-### TODO consider how to make this more sensible with the midi device number thing&#x2026;
+### TODO allow config files to overide led and all functions, for more native launchpad support
 
 
-<a id="org31b607f"></a>
+<a id="org7925797"></a>
 
-### TODO make some demonstrations, make launchpad untz instrument stuff built in
+### DONE add cols and rows function
 
 
-<a id="org261617c"></a>
+<a id="org8f6e950"></a>
+
+### DONE make page changing more efficient code wise
+
+
+<a id="org8107a1f"></a>
+
+### DONE consider how to make this more sensible with the midi device number thing&#x2026;
+
+
+<a id="orgfecddde"></a>
 
 ## scripts
 
 Notes for norns scripts that either work or I wanna make work, or need a little love to make work
 
 
-<a id="orgedb845e"></a>
+<a id="orge11eba7"></a>
 
 ### step
 
 works, need to block out midi
 
 
-<a id="org9cccd1f"></a>
+<a id="org5f17dbf"></a>
 
 ### strum
 
 works but with midi blocking
 
 
-<a id="org8a675de"></a>
+<a id="orge6d5076"></a>
 
-### reverse engineering mlr for apc mini
+### mlr64
 
-1.  code notes
-
-    1.  variable initializing
-    
-    2.  function update<sub>tempo</sub>
-
-2.  ideas
-
-    1.  the nav bar is remapped thusly:
-    
-        1.  the three modes are haux 1,2,3
-        
-        2.  the four patterns are haux 4,5,6,7
-        
-        3.  q is haux 8
-        
-        4.  alt is shift
-    
-    2.  rec / speed mode
-    
-        1.  play is vaux[track]
-        
-        2.  rec is track[1]
-        
-        3.  focus track[2] and [3
-        
-        4.  just get rid of the speed stuff, can use interface for that
-    
-    3.  simplest:  change nave bar to haux, then remap anything x>8 to the lower row, and spread out the rows
-    
-        if y == 1 then haux
-        if x > 8 then x-8, y+1
-        if y = 2, y = 1
-        if y = 3, y = 3
-        if y = 4, y = 5
-        if y = 5, y = 7
+[<https://github.com/noiserock/custom64>][mlr64]
+works!
 
 
-<a id="org9841e43"></a>
+<a id="org34e4323"></a>
 
 ### earthsea for apc mini
 
@@ -118,7 +101,7 @@ works but with midi blocking
     working but glitchy?
 
 
-<a id="org62ae768"></a>
+<a id="orgca53366"></a>
 
 ### vials for apc mini
 
@@ -131,7 +114,7 @@ works but with midi blocking
     works pretty great two pages
 
 
-<a id="orgc8f0e19"></a>
+<a id="org91703a4"></a>
 
 ### meadowphysics, this is one to look at
 
@@ -145,56 +128,56 @@ works but with midi blocking
 3.  if rules then choose with encoder
 
 
-<a id="org83a4422"></a>
+<a id="org408340f"></a>
 
 ### strides
 
 this one should be easy too, the second half of the grid is just pulled up from an alt key
 
 
-<a id="org3e15793"></a>
+<a id="org60c2a34"></a>
 
 ### shfts
 
 a toggle button for the two views
 
 
-<a id="orgc623d97"></a>
+<a id="org1ab0ff3"></a>
 
 ### cranes
 
 this is split in two, but horizontally, so going to need to be a little more sophisticated in the mapping
 
 
-<a id="orgfd59ba4"></a>
+<a id="orgb09f2c2"></a>
 
 ### ekombi
 
 just make it half as precise
 
 
-<a id="orgf0eced5"></a>
+<a id="orga3741e4"></a>
 
 ### takt
 
 maybe just a two pager?
 
 
-<a id="org44f2df4"></a>
+<a id="org10026ce"></a>
 
 ### foulplay
 
 only 64 ready to go!
 
 
-<a id="org58ec7ff"></a>
+<a id="org6488fdb"></a>
 
 ### zellen
 
 good to go with rows and cols, and adjusting led values
 
 
-<a id="org0602329"></a>
+<a id="orgba2b404"></a>
 
 ### isoseq
 
