@@ -30,6 +30,7 @@ Then, in whatever script you are working in, it works well to override the globa
     --which allows this call to work with our midi grid
     local g = grid.connect()
 
+<<<<<<< HEAD
 Previous issues with the midi device being blocked are resolved with this new implementation taken from ryanlaws [lunchpaid](<https://github.com/ryanlaws/lunchpaid>).
 
 
@@ -52,6 +53,9 @@ By default, the left and right arrow buttons on the bottom row of buttons on the
 ### launchpad
 
 The toggle buttons are the top two column buttons in launchpad auxiliary column.  need to set them up so they can be the left and right arrows but this is non trivial as the top auxiliary buttons on the launchpad send control (176) messages not note on.
+=======
+Previous issues with the midi device being blocked are resolved with this new implementation taken from ryanlaws [lunchpaid](https://github.com/ryanlaws/lunchpaid).
+>>>>>>> def6a7afaf052096ea1e914a7c8c7cbd0244499f
 
 
 <a id="org2220a83"></a>
