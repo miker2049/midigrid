@@ -130,9 +130,29 @@ function midigrid.update_devices()
   return (midigrid.midi_id ~= nil)
 end
 
-
-
-
+aliascoords_event={}
+aliascoords_led={}
+function midigrid.make_alias(note,x,y)
+  aliascoords_event[note]={x,y}
+  aliascoords_led[x+(y*8)]=note
+end
+function midigrid.check_alias_event(note,noteon)
+  if aliascoords_event[note] then
+    local x = aliascoords_event[note][1]
+    local y = aliascoords_event[note][2]
+    local s = noteon ==0x90 and 1 or 0
+    midigrid.key(x,y,s)
+  end
+end
+function midigrid.check_alias_led(x,y,z)
+  if aliascoords_led[x+(y*8)] then
+      table.insert(midigrid.ledbuf,0x90)
+      table.insert(midigrid.ledbuf,aliascoords_led[x+(y*8)])
+      local vel = z ==0 and 0 or 1
+      table.insert(midigrid.ledbuf,vel)
+      -- print('led call',x,y,z)
+  end
+end
 
 --getting the two pages set up
 apcnotecoords1={}
@@ -158,7 +178,10 @@ midigrid.cols = #gridnotes
 
 
 function midigrid:led(x, y, z) 
-  if x < 16 and y<8 and x >0 and y >0 then
+  midigrid.check_alias_led(x,y,z)
+  if x < 17 and y<9 and x >0 and y >0 then
+
+    vel = brightness_handler(z)
     gridbuf[x][y]=z
     --if we aint on the right page dont bother
     if x>8 and apcpage==1 then
@@ -177,11 +200,11 @@ function midigrid:led(x, y, z)
         note = gridnotes[y][x-8]
       end
 
-      vel = brightness_handler(z)
       if note then
         table.insert(self.ledbuf,0x90)
         table.insert(self.ledbuf,note)
         table.insert(self.ledbuf,vel)
+        -- print('led call',x,y,z)
       else
         --debugger
         print("no note found! coordinates....  x:"..x.."  y:"..y.."  z:"..z)
@@ -191,19 +214,19 @@ function midigrid:led(x, y, z)
 end
 
 -- sure there is more elegant way!
-function midigrid.changepage(page)
-  -- midigrid:all(0)
+function midigrid:changepage(page)
+  midigrid.ledbuf={}
+  -- self:all(4)
   if page==1 then
     for i=1,8 do
       for j=1,8 do
-        -- print(gridbuf[i][j])
         midigrid:led(i,j,gridbuf[i][j])
       end
     end
   elseif page==2 then
     for i=9,16 do
       for j=1,8 do
-        -- print(gridbuf[i][j])
+        -- print('page2',gridbuf[i][j])
         midigrid:led(i,j,gridbuf[i][j])
       end
     end
@@ -211,8 +234,11 @@ function midigrid.changepage(page)
   midigrid:refresh()
 end
 
+
+
 function midigrid.handle_key_midi(data)
   note = data[2]
+  midigrid.check_alias_event(data[2],data[1])
   --first, intercept page selectors
   if note==leftpage or note==rightpage then
     if note==leftpage and data[1]==0x90 and apcpage ~= 1 then
@@ -221,14 +247,14 @@ function midigrid.handle_key_midi(data)
       midi.devices[midigrid.midi_id]:send({144,rightpage,0})
       midi.devices[midigrid.midi_id]:send({144,leftpage,1})
       -- midi.devices[midigrid.midi_id]:send({type="note_on",ch=1,note=leftpage,vel=1})
-      midigrid.changepage(apcpage)
+      midigrid:changepage(apcpage)
     elseif note==rightpage and data[1]==0x90 and apcpage ~= 2  then
       apcpage=2
       -- midi.devices[midigrid.midi_id]:send({type="note_on",ch=1,note=leftpage,vel=0})
       -- midi.devices[midigrid.midi_id]:send({type="note_on",ch=1,note=rightpage,vel=1})
       midi.devices[midigrid.midi_id]:send({144,rightpage,1})
       midi.devices[midigrid.midi_id]:send({144,leftpage,0})
-      midigrid.changepage(apcpage)
+      midigrid:changepage(apcpage)
     end
   elseif note > -1 and note < 64 then
     local coords = apcnotecoords[apcpage][note]
@@ -255,29 +281,35 @@ function midigrid:refresh()
   end
 end
 
-function midigrid:all(vel)
-  vel = brightness_handler(vel)
+function midigrid:all(z)
+  vel = brightness_handler(z)
   if self.device then
-    self.ledbuf={}
+    -- self.ledbuf={}
     for x=1, 16 do
       for y=1, 8 do
         local data
-        gridbuf[x][y]=vel
-        chan = 1
-        if (apcpage==1 and x<9) then
-          note = gridnotes[y][x] 
-          table.insert(self.ledbuf,0x90)
-          table.insert(self.ledbuf,note)
-          table.insert(self.ledbuf,vel)
-        elseif (apcpage==2 and x>8) then
-          note = gridnotes[y][x-8]
-          table.insert(self.ledbuf,0x90)
-          table.insert(self.ledbuf,note)
-          table.insert(self.ledbuf,vel)
+        local oldvel = gridbuf[x][y]
+        gridbuf[x][y]=z
+        if gridbuf[x][y]~=oldvel then
+          -- gridbuf[x][y]=vel
+          midigrid.check_alias_led(x,y,z)
+          if (apcpage==1 and x<9) then
+            note = gridnotes[y][x] 
+            table.insert(self.ledbuf,0x90)
+            table.insert(self.ledbuf,note)
+            table.insert(self.ledbuf,vel)
+          elseif (apcpage==2 and x>8) then
+            note = gridnotes[y][x-8]
+            table.insert(self.ledbuf,0x90)
+            table.insert(self.ledbuf,note)
+            table.insert(self.ledbuf,vel)
+          end
+          -- print('all call',x,y,vel)
         end
       end
       -- if this is needed
-      -- self:refresh()
+      -- midi.devices[midigrid.midi_id]:send(self.ledbuf)
+      -- self.ledbuf={}
     end
   end
 end
