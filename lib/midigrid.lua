@@ -2,13 +2,13 @@
 
 -- cheapskate lib for getting midi grid devices to behave like monome grid devices
 --   --]]
--- local apcnome ={}
+-- local midigrid ={}
 --two things are run before returning, 'setup_connect_handling' and 'update_devices'
 --setup_connect_handling copies over 'og' midi add and remove callbacks, and gives its own add and remove handlers, which means the call backs for 
 --add and remove handlers:
 --update devices:
 --find_midi_devices: iterates through 'midi.devices' to see if the name matches, then returns id, this system manages its own ids, which is why you have to initialize it and why
---first, you connect to it, 'apcnome.connect', which returns a apcnome object and does 'set_midi_handler'
+--first, you connect to it, 'midigrid.connect', which returns a midigrid object and does 'set_midi_handler'
 --
 -----------------------------
 --loading up config file here
@@ -20,93 +20,93 @@ local device_name = config.device_name
 -----------------------------
 --adding midi device call backs
 --------------------------------
-local apcnome= {
+local midigrid= {
   midi_id = nil
 }
 
 local og_dev_add, og_dev_remove
 
-function apcnome.find_midi_device_id()
+function midigrid.find_midi_device_id()
     local found_id = nil
     for i, dev in pairs(midi.devices) do
         local name = string.lower(dev.name)
-        if apcnome.name_matches(name) then
+        if midigrid.name_matches(name) then
             found_id = dev.id
         end
     end
     return found_id
 end
 
-function apcnome.connect(dummy_id)
-    apcnome.set_midi_handler()
-    return apcnome
+function midigrid.connect(dummy_id)
+    midigrid.set_midi_handler()
+    return midigrid
 end
 
--- function apcnome.set_key_handler(key_handler)
---     apcnome.set_midi_handler()
---     apcnome.key = key_handler
+-- function midigrid.set_key_handler(key_handler)
+--     midigrid.set_midi_handler()
+--     midigrid.key = key_handler
 -- end
 
-function apcnome.setup_connect_handling()
+function midigrid.setup_connect_handling()
     og_dev_add = midi.add
     og_dev_remove = midi.remove
 
-    midi.add = apcnome.handle_dev_add
-    midi.remove = apcnome.handle_dev_remove
+    midi.add = midigrid.handle_dev_add
+    midi.remove = midigrid.handle_dev_remove
 end
 
-function apcnome.name_matches(name)
+function midigrid.name_matches(name)
     return (name == device_name)
 end
 
-function apcnome.handle_dev_add(id, name, dev)
+function midigrid.handle_dev_add(id, name, dev)
     og_dev_add(id, name, dev)
 
-    apcnome.update_devices()
+    midigrid.update_devices()
 
-    if (apcnome.name_matches(name)) and (id ~= apcnome.midi_id) then
-        apcnome.midi_id = id
-        apcnome.device = dev
-        apcnome.set_midi_handler()
+    if (midigrid.name_matches(name)) and (id ~= midigrid.midi_id) then
+        midigrid.midi_id = id
+        midigrid.device = dev
+        midigrid.set_midi_handler()
     end
 end
 
-function apcnome.handle_dev_remove(id)
+function midigrid.handle_dev_remove(id)
     og_dev_remove(id)
-    apcnome.update_devices()
+    midigrid.update_devices()
 end
 
 --this already expects it to have Midi_id
-function apcnome.set_midi_handler()
-    if apcnome.midi_id == nil then
+function midigrid.set_midi_handler()
+    if midigrid.midi_id == nil then
         return
     end
 
-    if midi.devices[apcnome.midi_id] ~= nil then
-        midi.devices[apcnome.midi_id].event = apcnome.handle_key_midi
+    if midi.devices[midigrid.midi_id] ~= nil then
+        midi.devices[midigrid.midi_id].event = midigrid.handle_key_midi
         --need this for checking .device
-        apcnome.device=midi.devices[apcnome.midi_id]
+        midigrid.device=midi.devices[midigrid.midi_id]
     else
-        apcnome.midi_id = nil
+        midigrid.midi_id = nil
     end
 end
 
-function apcnome.cleanup()
-  apcnome.key = nil
+function midigrid.cleanup()
+  midigrid.key = nil
 end
 
-function apcnome.update_devices()
+function midigrid.update_devices()
   midi.update_devices()
 
-  local new_id = apcnome.find_midi_device_id()
+  local new_id = midigrid.find_midi_device_id()
 
   -- Only set id/handler when helpful
-  if (apcnome.midi_id ~= new_id) and (new_id ~= nil) then
-    apcnome.midi_id = new_id
-    return apcnome.set_midi_handler()
+  if (midigrid.midi_id ~= new_id) and (new_id ~= nil) then
+    midigrid.midi_id = new_id
+    return midigrid.set_midi_handler()
   end
 
-  return (apcnome.midi_id ~= nil)
+  return (midigrid.midi_id ~= nil)
 end
 
 
@@ -121,12 +121,12 @@ for i,v in ipairs(gridnotes) do
   end
 end
 
-apcnome.ledbuf={}
+midigrid.ledbuf={}
 
-apcnome.rows = #gridnotes[1]
-apcnome.cols = #gridnotes
+midigrid.rows = #gridnotes[1]
+midigrid.cols = #gridnotes
 
-function apcnome.handle_key_midi(event)
+function midigrid.handle_key_midi(event)
   --block cc messages, so they can be mapped
   if(event[1]==0x90 or event[1]==0x80) then
     local note = event[2]
@@ -135,8 +135,8 @@ function apcnome.handle_key_midi(event)
     if coords then
       x, y = coords[1],coords[2]
       local s = event[1] ==0x90 and 1 or 0
-      if apcnome.key ~= nil then
-        apcnome.key(x, y, s)
+      if midigrid.key ~= nil then
+        midigrid.key(x, y, s)
       end
     else
       print("missing coords!")
@@ -145,7 +145,7 @@ function apcnome.handle_key_midi(event)
 end
 
 
-function apcnome:led(x, y, z)
+function midigrid:led(x, y, z)
   if self.device then
     chan = 1
     --flag reversed here because thats actually what it is in lua table!!!, see above. this is clearer either way I think
@@ -164,15 +164,15 @@ end
 
 
 --sending our buff
-function apcnome:refresh()
+function midigrid:refresh()
   if self.device then
     -- self:send(self.ledbuf)
-    midi.devices[apcnome.midi_id]:send(self.ledbuf)
+    midi.devices[midigrid.midi_id]:send(self.ledbuf)
     self.ledbuf={}
   end
 end
 
-function apcnome:all(vel)
+function midigrid:all(vel)
   if self.device then
     self.ledbuf={}
     for x=1, #gridnotes do
@@ -191,7 +191,7 @@ function apcnome:all(vel)
 end
 
 -- setting up connection and connection callbacks before returning
-apcnome.setup_connect_handling()
-apcnome.update_devices()
+midigrid.setup_connect_handling()
+midigrid.update_devices()
 
-return apcnome
+return midigrid
