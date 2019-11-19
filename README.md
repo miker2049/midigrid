@@ -30,7 +30,7 @@ Then, in whatever script you are working in, it works well to override the globa
     --which allows this call to work with our midi grid
     local g = grid.connect()
 
-Previous issues with the midi device being blocked are resolved with this new implementation taken from ryanlaws [lunchpaid](<https://github.com/ryanlaws/lunchpaid).
+Previous issues with the midi device being blocked are resolved with this new implementation taken from ryanlaws [lunchpaid](https://github.com/ryanlaws/lunchpaid).
 
 If a script expects incoming midi, **you need to set your midi device to a slot other than 1.**
 
