@@ -30,9 +30,11 @@ Then, in whatever script you are working in, it works well to override the globa
     --which allows this call to work with our midi grid
     local g = grid.connect()
 
-Previous issues with the midi device being blocked are resolved with this new implementation taken from ryanlaws [lunchpaid](<https://github.com/ryanlaws/lunchpaid>.
+Previous issues with the midi device being blocked are resolved with this new implementation taken from ryanlaws [lunchpaid](<https://github.com/ryanlaws/lunchpaid).
 
 If a script expects incoming midi, **you need to set your midi device to a slot other than 1.**
+
+Finally, each config file has a `device_name` parameter that may need to be adjusted for different versions of launchpad.  Check what the name of the device is on norns and adjust accordingly.  
 
 <a id="orgb475cd5"></a>
 
@@ -56,7 +58,7 @@ The toggle buttons are the top two column buttons in launchpad auxiliary column.
 
 ## todos
 
-
+### TODO key aliasing feature, to use auxiliary keys in different ways per script
 <a id="org2979fc0"></a>
 
 ### TODO add config files for launchpad (and untz maybe)
