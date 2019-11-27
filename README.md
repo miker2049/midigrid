@@ -10,26 +10,27 @@ Two scripts in the lib folder to include in scripts as 'grid', config files in t
 <a id="org23244c6"></a>
 
 ## instructions
+Install by downloading this repo into your dust scripts folder, and calling the library like regular norns libraries, i.e, `include('midigrid/lib/midigrid')`.  
 
-`midigrid.lua` and `apcmini_config.lua** is documented in the scripts themselves, setting up a new config file also means it needs to be loaded into the script itself:
-
-    -----------------------------
-    --loading up config file here
-    -----------------------------
-    local config = include('midigrid/config/apcmini_config')
-    -- local config = include('midigrid/config/launchpad_config')
-    -- local config = include('midigrid/config/untz_config')
-    -----------------------------
-
+`midigrid.lua` and `apcmini_config.lua` is documented in the scripts themselves, setting up a new config file also means it needs to be loaded into the script itself:
+```lua
+-----------------------------
+--loading up config file here
+-----------------------------
+local config = include('midigrid/config/apcmini_config')
+-- local config = include('midigrid/config/launchpad_config')
+-- local config = include('midigrid/config/untz_config')
+-----------------------------
+```
 Then, in whatever script you are working in, it works well to override the global grid object with our own local one:
-
-    --adding this to script
-    local grid = include('cheapskate/lib/midigrid')
-    --or this
-    local grid = include('cheapskate/lib/midigrid_2pages')
-    --which allows this call to work with our midi grid
-    local g = grid.connect()
-
+```lua
+--adding this to script
+local grid = include('cheapskate/lib/midigrid')
+--or this
+local grid = include('cheapskate/lib/midigrid_2pages')
+--which allows this call to work with our midi grid
+local g = grid.connect()
+```
 Previous issues with the midi device being blocked are resolved with this new implementation taken from ryanlaws [lunchpaid](https://github.com/ryanlaws/lunchpaid).
 
 If a script expects incoming midi, **you need to set your midi device to a slot other than 1.**
