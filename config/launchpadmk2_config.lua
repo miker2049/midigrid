@@ -18,25 +18,25 @@ local launchpad={
       return 0
     elseif (val > 0) and (val < 3) then --0-2
       --low green
-      return 28
+      return 27
     elseif (val > 2) and (val < 6) then --3-5
-      --full green
-      return 60
+      --low yellow
+      return 13
     elseif (val > 5) and (val < 8) then --6--7
       --full yellow
-      return 62
+      return 12 
     elseif (val > 7) and (val < 11) then--8-10
-      --low amber
-      return 29
+      --low pink
+      return 54
     elseif (val > 10) and (val < 13) then--11-12
-      --full amber
-      return 63
+      --full pink
+      return 53
     elseif (val > 12) and (val < 15) then--13-14
       --low red
-      return 13
+      return 61
     elseif (val > 14) and (val < 17) then--15-16
       --full red
-      return 15
+      return 60
     else
       return 0
     end
