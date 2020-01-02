@@ -43,10 +43,10 @@ function midigrid.connect(dummy_id)
 end
 
 
--- function midigrid.set_key_handler(key_handler)
---     midigrid.set_midi_handler()
---     midigrid.key = key_handler
--- end
+function midigrid.set_key_handler(key_handler)
+    midigrid.set_midi_handler()
+    midigrid.key = key_handler
+end
 
 
 function midigrid.setup_connect_handling()
@@ -146,7 +146,6 @@ end
 
 function midigrid:led(x, y, z)
     if self.device then
-        chan = 1
 
         -- flag reversed here because thats actually what it is in lua table!!!, see above.
         -- this is clearer either way I think
@@ -159,8 +158,7 @@ function midigrid:led(x, y, z)
         else
 
             -- debugger, probably want to comment this out if you are being messyy
-            print("no note found! coordinates....  x:" .. x .. "  y:" .. y ..
-                      "  z:" .. z)
+            print("no note found! coordinates....  x:" .. x .. "  y:" .. y .. "  z:" .. z)
         end
     end
 end
@@ -169,7 +167,6 @@ end
 -- sending our buff
 function midigrid:refresh()
     if self.device then
-        -- self:send(self.ledbuf)
         midi.devices[midigrid.midi_id]:send(self.ledbuf)
         self.ledbuf = {}
     end
@@ -181,16 +178,12 @@ function midigrid:all(vel)
         self.ledbuf = {}
         for x = 1, #gridnotes do
             for y = 1, #gridnotes[x] do
-                chan = 1
                 note = gridnotes[x][y]
                 vel = brightness_handler(vel)
                 table.insert(self.ledbuf, 0x90)
                 table.insert(self.ledbuf, note)
                 table.insert(self.ledbuf, vel)
             end
-            -- it is unclear to me sometimes if a call to all in a regular grid requires a
-            -- subsequent refresh, have this here in cqase
-            -- self:refresh()
         end
     end
 end
