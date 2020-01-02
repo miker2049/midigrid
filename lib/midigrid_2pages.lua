@@ -186,9 +186,6 @@ function midigrid:all(brightness)
                             table.insert(midigrid.led_buf, note)
                             table.insert(midigrid.led_buf, vel)
                         end
-                        table.insert(midigrid.led_buf, 0x90)
-                        table.insert(midigrid.led_buf, note)
-                        table.insert(midigrid.led_buf, vel)
                     end
                 end
             end
