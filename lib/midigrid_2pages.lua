@@ -24,6 +24,7 @@ local grid_notes = config.grid_notes
 local brightness_handler = config.brightness_handler
 local device_name = config.device_name
 local og_dev_add, og_dev_remove
+local caps = config.caps
 local leftpage = config.leftpage_button
 local rightpage = config.rightpage_button
 
@@ -163,11 +164,28 @@ function midigrid:all(brightness)
                     grid_buf[row][col] = brightness
                     if (page == 1 and col < 9) then
                         note = grid_notes[row][col]
-                        table.insert(midigrid.led_buf, 0x90)
-                        table.insert(midigrid.led_buf, note)
-                        table.insert(midigrid.led_buf, vel)
+                        if caps['sysex'] and caps['rgb'] then
+                            sysex = config:all_led_sysex(vel)
+                            for _, byte in ipairs(sysex) do
+                                table.insert(midigrid.led_buf, byte)
+                            end
+                        else
+                            table.insert(midigrid.led_buf, 0x90)
+                            table.insert(midigrid.led_buf, note)
+                            table.insert(midigrid.led_buf, vel)
+                        end
                     elseif (page == 2 and col > 8) then
                         note = grid_notes[row][col - 8]
+                        if caps['sysex'] and caps['rgb'] then
+                            sysex = config:all_led_sysex(vel)
+                            for _, byte in ipairs(sysex) do
+                                table.insert(midigrid.led_buf, byte)
+                            end
+                        else
+                            table.insert(midigrid.led_buf, 0x90)
+                            table.insert(midigrid.led_buf, note)
+                            table.insert(midigrid.led_buf, vel)
+                        end
                         table.insert(midigrid.led_buf, 0x90)
                         table.insert(midigrid.led_buf, note)
                         table.insert(midigrid.led_buf, vel)
@@ -200,9 +218,16 @@ function midigrid:led(col, row, brightness)
                 note = grid_notes[row][col - 8]
             end
             if note then
-                table.insert(midigrid.led_buf, 0x90)
-                table.insert(midigrid.led_buf, note)
-                table.insert(midigrid.led_buf, vel)
+                if caps['sysex'] and caps['rgb'] then
+                    sysex = config:led_sysex(note, vel)
+                    for _, byte in ipairs(sysex) do
+                        table.insert(midigrid.led_buf, byte)
+                    end
+                else
+                    table.insert(midigrid.led_buf, 0x90)
+                    table.insert(midigrid.led_buf, note)
+                    table.insert(midigrid.led_buf, vel)
+                end
             else
                 print('no note found! coordinates... x: ' .. col .. ' y: ' .. row .. ' z: ' .. brightness)
             end
@@ -265,14 +290,14 @@ function midigrid.handle_key_midi(event)
     -- first, intercept page selectors
     if note == leftpage or note == rightpage then
         if note == leftpage
-                and midi_msg.type == 'note_on'
+                and (midi_msg.type == 'note_on' or caps['cc_edge_buttons'])
                 and page ~= 1 then
             page = 1
             local_grid:note_on(rightpage, 0)
             local_grid:note_on(leftpage, 1)
             midigrid:changepage(page)
         elseif note == rightpage
-                and midi_msg.type == 'note_on'
+                and (midi_msg.type == 'note_on' or caps['cc_edge_buttons'])
                 and page ~= 2 then
             page = 2
             local_grid:note_on(rightpage, 1)
@@ -284,7 +309,7 @@ function midigrid.handle_key_midi(event)
 
     -- "musical" notes, i.e. the main 8x8 grid, are in this range, BUT these values are
     -- device-dependent. Reject cc "notes" here.
-    elseif (note >= 0 and note <= 64)
+    elseif (note >= 0 and note <= 88)
             and (midi_msg.type == 'note_on'
             or midi_msg.type == 'note_off') then
         local coords = note_coords[page][note]

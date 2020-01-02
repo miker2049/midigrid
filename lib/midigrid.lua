@@ -32,6 +32,7 @@ local grid_notes = config.grid_notes
 local brightness_handler = config.brightness_handler
 local device_name = config.device_name
 local og_dev_add, og_dev_remove
+local caps = config.caps
 
 -- adding midi device call backs---
 local midigrid = {midi_id = nil}
@@ -193,9 +194,16 @@ function midigrid:led(col, row, brightness)
         if midigrid.device then
             note = grid_notes[row][col]
             if note then
-                table.insert(midigrid.led_buf, 0x90)
-                table.insert(midigrid.led_buf, note)
-                table.insert(midigrid.led_buf, vel)
+                if caps['sysex'] and caps['rgb'] then
+                    sysex = config:led_sysex(note, vel)
+                    for _, byte in ipairs(sysex) do
+                        table.insert(midigrid.led_buf, byte)
+                    end
+                else
+                    table.insert(midigrid.led_buf, 0x90)
+                    table.insert(midigrid.led_buf, note)
+                    table.insert(midigrid.led_buf, vel)
+                end
             else
                 print('no note found! coordinates... x: ' .. col .. ' y: ' .. row .. ' z: ' .. brightness)
             end
