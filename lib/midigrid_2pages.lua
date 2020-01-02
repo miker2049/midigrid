@@ -159,9 +159,8 @@ function midigrid:all(brightness)
     if midigrid.device then
         for row = 1, midigrid.rows do
             for col = 1, midigrid.cols do
-                local oldvel = grid_buf[row][col]
-                grid_buf[row][col] = brightness
-                if grid_buf[row][col] ~= oldvel then    -- this led needs to be set
+                if grid_buf[row][col] ~= brightness then  -- this led needs to be set
+                    grid_buf[row][col] = brightness
                     if (page == 1 and col < 9) then
                         note = grid_notes[row][col]
                         table.insert(midigrid.led_buf, 0x90)
@@ -188,10 +187,10 @@ function midigrid:led(col, row, brightness)
         grid_buf[row][col] = brightness
 
         -- if we aint on the right page dont bother
-        if col > 8 and page == 1 then
+        if col >= 9 and page == 1 then
             return
         end
-        if col < 8 and page == 2 then
+        if col <= 8 and page == 2 then
             return
         end
         if midigrid.device then
