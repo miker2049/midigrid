@@ -3,10 +3,23 @@
      the 'leftpage'/'rightpage' buttons as defined in the relevant config file.
 ]]
 
---  loading up config file here
-local config = include('midigrid/config/apcmini_config')
--- local config = include('midigrid/config/launchpad_config')
-
+local supported_devices = {apcmini = 'apcmini',
+                           launchpadmk2 = 'launchpad mk2',
+                           launchpadpro = 'launchpad pro 2',
+                           launchpad = 'launchpad'}
+local config_name = 'none'
+for _, dev in pairs(midi.devices) do
+    local name = string.lower(dev.name)
+    for device, device_name in pairs(supported_devices) do
+        if name == device_name then
+            config_name = 'midigrid/config/' .. device .. '_config'
+        end
+    end
+end
+if config_name == 'none' then
+    print('No supported device found')
+end
+local config = include(config_name)
 local gridnotes = config.grid
 local brightness_handler = config.brightness_handler
 local device_name = config.device_name
