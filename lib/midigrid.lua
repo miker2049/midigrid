@@ -1,15 +1,14 @@
 --[[ cheapskate lib for getting midi grid devices to behave like monome grid devices
-     local midigrid ={}
-     two things are run before returning, 'setup_connect_handling' and 'update_devices'
-     setup_connect_handling copies over 'og' midi add and remove callbacks, and gives its own
-     add and remove handlers, which means the call backs for
-     add and remove handlers:
-     update devices:
-     find_midi_devices: iterates through 'midi.devices' to see if the name matches, then
-     returns id, this system manages its own ids, which is why you have to initialize it and
-     why
-     first, you connect to it, 'midigrid.connect', which returns a midigrid object and does
-     'set_midi_handler'
+     two things are run before returning, `setup_connect_handling()` and `update_devices()`.
+     `setup_connect_handling()` copies over 'og' midi "add" and "remove" callbacks, and
+     provides its own add and remove handlers, i.e. the call backs for:
+       - `midi.add()`
+       - `midi.remove()`
+       - `midi.update_devices()`
+     `find_midi_device_id()` iterates through `midi.devices` to see if the name matches, then
+     returns `id`, this system manages its own ids, which is why you have to initialize it and
+     why first, you connect to it (`midigrid.connect()`), which returns a midigrid object and
+     does `set_midi_handler()`
 ]]
 
 -- loading up config file here
@@ -19,10 +18,23 @@ local config = include('midigrid/config/apcmini_config')
 local gridnotes = config.grid
 local brightness_handler = config.brightness_handler
 local device_name = config.device_name
+local og_dev_add, og_dev_remove
 
 -- adding midi device call backs---
 local midigrid = {midi_id = nil}
-local og_dev_add, og_dev_remove
+midigrid.ledbuf = {}
+midigrid.rows = #gridnotes[1]
+midigrid.cols = #gridnotes
+
+-- here, using the grid from the config file, we generate the table to help us go the other
+-- way around so, if you press a midi note and you wanna know what it is, this will have an
+-- index with our coordinates
+local note2coords = {}
+for i, v in ipairs(gridnotes) do
+    for j, k in ipairs(v) do
+        note2coords[k] = {j, i}
+    end
+end
 
 
 function midigrid.find_midi_device_id()
@@ -111,20 +123,6 @@ function midigrid.update_devices()
 end
 
 
--- here, using the grid from the config file, we generate the table to help us go the other
--- way around so, if you press a midi note and you wanna know what it is, this will have an
--- index with our coordinates
-local note2coords = {}
-for i, v in ipairs(gridnotes) do
-    for j, k in ipairs(v) do
-        note2coords[k] = {j, i}
-    end
-end
-midigrid.ledbuf = {}
-midigrid.rows = #gridnotes[1]
-midigrid.cols = #gridnotes
-
-
 function midigrid.handle_key_midi(event)
     -- block cc messages, so they can be mapped
     if (event[1] == 0x90 or event[1] == 0x80) then
@@ -144,6 +142,24 @@ function midigrid.handle_key_midi(event)
 end
 
 
+-- led handling. *generally speaking*; first we clear the led buffer...
+function midigrid:all(vel)
+    if self.device then
+        self.ledbuf = {}
+        for x = 1, #gridnotes do
+            for y = 1, #gridnotes[x] do
+                note = gridnotes[x][y]
+                vel = brightness_handler(vel)
+                table.insert(self.ledbuf, 0x90)
+                table.insert(self.ledbuf, note)
+                table.insert(self.ledbuf, vel)
+            end
+        end
+    end
+end
+
+
+-- ...then we update the led buf at our leisure...
 function midigrid:led(x, y, z)
     if self.device then
 
@@ -164,27 +180,13 @@ function midigrid:led(x, y, z)
 end
 
 
--- sending our buff
+-- ...then we send the whole buf at once
 function midigrid:refresh()
     if self.device then
         midi.devices[midigrid.midi_id]:send(self.ledbuf)
-        self.ledbuf = {}
-    end
-end
 
-
-function midigrid:all(vel)
-    if self.device then
+        -- ...and clear the buffer again.
         self.ledbuf = {}
-        for x = 1, #gridnotes do
-            for y = 1, #gridnotes[x] do
-                note = gridnotes[x][y]
-                vel = brightness_handler(vel)
-                table.insert(self.ledbuf, 0x90)
-                table.insert(self.ledbuf, note)
-                table.insert(self.ledbuf, vel)
-            end
-        end
     end
 end
 

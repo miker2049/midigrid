@@ -1,10 +1,24 @@
---[[ cheapskate library for apc, 2 pages contains within itself a full 128 grid table, that
-     can be viewed and played with by changing the two buttons at the bottom of the apc
+--[[ cheapskate library for midi grid devices, 2 pages.
+     contains within itself a full 128 grid table, which can be viewed and played by pressing
+     the 'leftpage'/'rightpage' buttons as defined in the relevant config file.
 ]]
 
 --  loading up config file here
 local config = include('midigrid/config/apcmini_config')
 -- local config = include('midigrid/config/launchpad_config')
+
+local gridnotes = config.grid
+local brightness_handler = config.brightness_handler
+local device_name = config.device_name
+local og_dev_add, og_dev_remove
+local leftpage = config.leftpage_button
+local rightpage = config.rightpage_button
+
+-- adding midi device call backs
+local midigrid = {midi_id = nil}
+midigrid.ledbuf = {}
+midigrid.rows = #gridnotes[1]
+midigrid.cols = #gridnotes
 
 -- start on "page" 1
 local apcpage = 1
@@ -18,17 +32,20 @@ for i = 1, 16 do
     end
 end
 
-local gridnotes = config.grid
-local brightness_handler = config.brightness_handler
-local device_name = config.device_name
-
--- set your left right page numbers here...
-local leftpage = config.leftpage_button
-local rightpage = config.rightpage_button
-
--- adding midi device call backs
-local midigrid = {midi_id = nil}
-local og_dev_add, og_dev_remove
+-- getting the two pages set up
+apcnotecoords1 = {}
+apcnotecoords2 = {}
+for i, v in ipairs(gridnotes) do
+    for j, k in ipairs(v) do
+        apcnotecoords1[k] = {j, i}
+    end
+end
+for i, v in ipairs(gridnotes) do
+    for j, k in ipairs(v) do
+        apcnotecoords2[k] = {j + 8, i}
+    end
+end
+apcnotecoords = {apcnotecoords1, apcnotecoords2}
 
 
 function midigrid.find_midi_device_id()
@@ -45,6 +62,8 @@ end
 
 function midigrid.connect(dummy_id)
     midigrid.set_midi_handler()
+
+    --init on page 1
     midi.devices[midigrid.midi_id]:send({144, leftpage, 1})
     midi.devices[midigrid.midi_id]:send({144, rightpage, 0})
     return midigrid
@@ -101,7 +120,9 @@ function midigrid.set_midi_handler()
 end
 
 
-function midigrid.cleanup() midigrid.key = nil end
+function midigrid.cleanup()
+    midigrid.key = nil
+end
 
 
 function midigrid.update_devices()
@@ -117,25 +138,34 @@ function midigrid.update_devices()
 end
 
 
--- getting the two pages set up
-apcnotecoords1 = {}
-apcnotecoords2 = {}
-for i, v in ipairs(gridnotes) do
-    for j, k in ipairs(v) do
-        apcnotecoords1[k] = {j, i}
+-- led handling. *generally speaking*; first we clear the unchanged led buffer...
+function midigrid:all(z)
+    vel = brightness_handler(z)
+    if self.device then
+        for x = 1, 16 do
+            for y = 1, 8 do
+                local oldvel = gridbuf[x][y]
+                gridbuf[x][y] = z
+                if gridbuf[x][y] ~= oldvel then    -- this led needs to be set
+                    if (apcpage == 1 and x < 9) then
+                        note = gridnotes[y][x]
+                        table.insert(self.ledbuf, 0x90)
+                        table.insert(self.ledbuf, note)
+                        table.insert(self.ledbuf, vel)
+                    elseif (apcpage == 2 and x > 8) then
+                        note = gridnotes[y][x - 8]
+                        table.insert(self.ledbuf, 0x90)
+                        table.insert(self.ledbuf, note)
+                        table.insert(self.ledbuf, vel)
+                    end
+                end
+            end
+        end
     end
 end
-for i, v in ipairs(gridnotes) do
-    for j, k in ipairs(v) do
-        apcnotecoords2[k] = {j + 8, i}
-    end
-end
-apcnotecoords = {apcnotecoords1, apcnotecoords2}
-midigrid.ledbuf = {}
-midigrid.rows = #gridnotes[1]
-midigrid.cols = #gridnotes
 
 
+-- ...then we update the led buf at our leisure...
 function midigrid:led(x, y, z)
     if x < 17 and y < 9 and x > 0 and y > 0 then
         vel = brightness_handler(z)
@@ -163,6 +193,17 @@ function midigrid:led(x, y, z)
                     "no note found! coordinates....  x:" .. x .. "  y:" .. y .. "  z:" .. z)
             end
         end
+    end
+end
+
+
+-- ...then we send the whole buf at once
+function midigrid:refresh()
+    if self.device then
+        midi.devices[midigrid.midi_id]:send(self.ledbuf)
+
+        -- ...and clear the buffer again.
+        self.ledbuf = {}
     end
 end
 
@@ -202,7 +243,12 @@ function midigrid.handle_key_midi(data)
             midi.devices[midigrid.midi_id]:send({144, rightpage, 1})
             midi.devices[midigrid.midi_id]:send({144, leftpage, 0})
             midigrid:changepage(apcpage)
+        else
+            -- possibly note_off
         end
+
+    -- "musical" notes, i.e. the main 8x8 grid, are in this range, BUT these values are
+    -- device-dependent. Reject cc "notes" here.
     elseif note > -1 and note < 64 then
         local coords = apcnotecoords[apcpage][note]
         local x, y
@@ -217,40 +263,6 @@ function midigrid.handle_key_midi(data)
         end
     else
         print("unmapped key")
-    end
-end
-
-
-function midigrid:refresh()
-    if self.device then
-        midi.devices[midigrid.midi_id]:send(self.ledbuf)
-        self.ledbuf = {}
-    end
-end
-
-
-function midigrid:all(z)
-    vel = brightness_handler(z)
-    if self.device then
-        for x = 1, 16 do
-            for y = 1, 8 do
-                local oldvel = gridbuf[x][y]
-                gridbuf[x][y] = z
-                if gridbuf[x][y] ~= oldvel then
-                    if (apcpage == 1 and x < 9) then
-                        note = gridnotes[y][x]
-                        table.insert(self.ledbuf, 0x90)
-                        table.insert(self.ledbuf, note)
-                        table.insert(self.ledbuf, vel)
-                    elseif (apcpage == 2 and x > 8) then
-                        note = gridnotes[y][x - 8]
-                        table.insert(self.ledbuf, 0x90)
-                        table.insert(self.ledbuf, note)
-                        table.insert(self.ledbuf, vel)
-                    end
-                end
-            end
-        end
     end
 end
 
