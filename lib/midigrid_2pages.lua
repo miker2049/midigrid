@@ -20,7 +20,7 @@ if config_name == 'none' then
     print('No supported device found')
 end
 local config = include(config_name)
-local gridnotes = config.grid
+local grid_notes = config.grid
 local brightness_handler = config.brightness_handler
 local device_name = config.device_name
 local og_dev_add, og_dev_remove
@@ -29,37 +29,37 @@ local rightpage = config.rightpage_button
 
 -- adding midi device call backs
 local midigrid = {midi_id = nil}
-midigrid.ledbuf = {}
-midigrid.rows = #gridnotes[1]
-midigrid.cols = #gridnotes * 2  -- an assumption, but a safe one
+midigrid.led_buf = {}
+midigrid.rows = #grid_notes[1]
+midigrid.cols = #grid_notes * 2  -- an assumption, but a safe one
 
 -- start on "page" 1
-local apcpage = 1
+local page = 1
 
 -- make the grid buf
-local gridbuf = {}
+local grid_buf = {}
 for rows = 1, midigrid.rows do
-    gridbuf[rows] = {}
+    grid_buf[rows] = {}
     for cols = 1, midigrid.cols do
-        gridbuf[rows][cols] = 0
+        grid_buf[rows][cols] = 0
     end
 end
 
 -- getting the two pages set up
-apcnotecoords1 = {}
-apcnotecoords2 = {}
-for row, notes in ipairs(gridnotes) do
+left_note_coords = {}
+right_note_coords = {}
+for row, notes in ipairs(grid_notes) do
     for col, note in ipairs(notes) do
-        apcnotecoords1[note] = {col, row}
-        apcnotecoords2[note] = {col + 8, row}
+        left_note_coords[note] = {col, row}
+        right_note_coords[note] = {col + 8, row}
     end
 end
-apcnotecoords = {apcnotecoords1, apcnotecoords2}
+apcnotecoords = {left_note_coords, right_note_coords}
 
 
 function midigrid.find_midi_device_id()
     local found_id = nil
-    for i, dev in pairs(midi.devices) do
+    for _, dev in pairs(midi.devices) do
         local name = string.lower(dev.name)
         if midigrid.name_matches(name) then
             found_id = dev.id
@@ -72,7 +72,7 @@ end
 function midigrid.connect(dummy_id)
     midigrid.set_midi_handler()
 
-    --init on page 1
+    -- init on page 1
     midi.devices[midigrid.midi_id]:send({144, leftpage, 1})
     midi.devices[midigrid.midi_id]:send({144, rightpage, 0})
     return midigrid
@@ -103,7 +103,6 @@ function midigrid.handle_dev_add(id, name, dev)
     midigrid.update_devices()
     if (midigrid.name_matches(name)) and (id ~= midigrid.midi_id) then
         midigrid.midi_id = id
-        midigrid.device = dev
         midigrid.set_midi_handler()
     end
 end
@@ -123,6 +122,8 @@ function midigrid.set_midi_handler()
 
         -- need this for checking .device
         midigrid.device = midi.devices[midigrid.midi_id]
+        print('`midigrid.device` is:')
+        tab.print(midigrid.device)
     else
         midigrid.midi_id = nil
     end
@@ -148,24 +149,24 @@ end
 
 
 -- led handling. *generally speaking*; first we clear the unchanged led buffer...
-function midigrid:all(z)
-    vel = brightness_handler(z)
-    if self.device then
+function midigrid:all(brightness)
+    vel = brightness_handler(brightness)
+    if midigrid.device then
         for row = 1, midigrid.rows do
             for col = 1, midigrid.cols do
-                local oldvel = gridbuf[row][col]
-                gridbuf[row][col] = z
-                if gridbuf[row][col] ~= oldvel then    -- this led needs to be set
-                    if (apcpage == 1 and col < 9) then
-                        note = gridnotes[row][col]
-                        table.insert(self.ledbuf, 0x90)
-                        table.insert(self.ledbuf, note)
-                        table.insert(self.ledbuf, vel)
-                    elseif (apcpage == 2 and col > 8) then
-                        note = gridnotes[row][col - 8]
-                        table.insert(self.ledbuf, 0x90)
-                        table.insert(self.ledbuf, note)
-                        table.insert(self.ledbuf, vel)
+                local oldvel = grid_buf[row][col]
+                grid_buf[row][col] = brightness
+                if grid_buf[row][col] ~= oldvel then    -- this led needs to be set
+                    if (page == 1 and col < 9) then
+                        note = grid_notes[row][col]
+                        table.insert(midigrid.led_buf, 0x90)
+                        table.insert(midigrid.led_buf, note)
+                        table.insert(midigrid.led_buf, vel)
+                    elseif (page == 2 and col > 8) then
+                        note = grid_notes[row][col - 8]
+                        table.insert(midigrid.led_buf, 0x90)
+                        table.insert(midigrid.led_buf, note)
+                        table.insert(midigrid.led_buf, vel)
                     end
                 end
             end
@@ -175,31 +176,31 @@ end
 
 
 -- ...then we update the led buf at our leisure...
-function midigrid:led(col, row, z)
+function midigrid:led(col, row, brightness)
     if (col >= 1 and row >= 1)
             and (col <= midigrid.cols and row <= midigrid.rows) then
-        vel = brightness_handler(z)
-        gridbuf[row][col] = z
+        vel = brightness_handler(brightness)
+        grid_buf[row][col] = brightness
 
         -- if we aint on the right page dont bother
-        if col > 8 and apcpage == 1 then
+        if col > 8 and page == 1 then
             return
         end
-        if col < 8 and apcpage == 2 then
+        if col < 8 and page == 2 then
             return
         end
-        if self.device then
-            if apcpage == 1 then
-                note = gridnotes[row][col]
-            elseif apcpage == 2 then
-                note = gridnotes[row][col - 8]
+        if midigrid.device then
+            if page == 1 then
+                note = grid_notes[row][col]
+            elseif page == 2 then
+                note = grid_notes[row][col - 8]
             end
             if note then
-                table.insert(self.ledbuf, 0x90)
-                table.insert(self.ledbuf, note)
-                table.insert(self.ledbuf, vel)
+                table.insert(midigrid.led_buf, 0x90)
+                table.insert(midigrid.led_buf, note)
+                table.insert(midigrid.led_buf, vel)
             else
-                print('no note found! coordinates... x: ' .. col .. ' y: ' .. row .. ' z: ' .. z)
+                print('no note found! coordinates... x: ' .. col .. ' y: ' .. row .. ' z: ' .. brightness)
             end
         end
     end
@@ -208,28 +209,30 @@ end
 
 -- ...then we send the whole buf at once
 function midigrid:refresh()
-    if self.device then
-        midi.devices[midigrid.midi_id]:send(self.ledbuf)
+    if midigrid.device then
+        midi.devices[midigrid.midi_id]:send(midigrid.led_buf)
 
         -- ...and clear the buffer again.
-        self.ledbuf = {}
+        midigrid.led_buf = {}
+    else
+        print('Error: no device found')
     end
 end
 
 
--- sure there is more elegant way!
+-- surely there is more elegant way!
 function midigrid:changepage(page)
-    midigrid.ledbuf = {}
+    midigrid.led_buf = {}
     if page == 1 then
         for row = 1, midigrid.rows do
             for col = 1, midigrid.cols - 8  do
-                midigrid:led(col, row, gridbuf[row][col])
+                midigrid:led(col, row, grid_buf[row][col])
             end
         end
     elseif page == 2 then
         for row = 1, midigrid.rows do
             for col = midigrid.cols - 7, midigrid.cols do
-                midigrid:led(col, row, gridbuf[row][col])
+                midigrid:led(col, row, grid_buf[row][col])
             end
         end
     end
@@ -246,16 +249,16 @@ function midigrid.handle_key_midi(event)
 
     -- first, intercept page selectors
     if note == leftpage or note == rightpage then
-        if note == leftpage and event[1] == 0x90 and apcpage ~= 1 then
-            apcpage = 1
+        if note == leftpage and event[1] == 0x90 and page ~= 1 then
+            page = 1
             local_grid:send({144, rightpage, 0})
             local_grid:send({144, leftpage, 1})
-            midigrid:changepage(apcpage)
-        elseif note == rightpage and event[1] == 0x90 and apcpage ~= 2 then
-            apcpage = 2
+            midigrid:changepage(page)
+        elseif note == rightpage and event[1] == 0x90 and page ~= 2 then
+            page = 2
             local_grid:send({144, rightpage, 1})
             local_grid:send({144, leftpage, 0})
-            midigrid:changepage(apcpage)
+            midigrid:changepage(page)
         else
             -- possibly note_off
         end
@@ -263,7 +266,7 @@ function midigrid.handle_key_midi(event)
     -- "musical" notes, i.e. the main 8x8 grid, are in this range, BUT these values are
     -- device-dependent. Reject cc "notes" here.
     elseif note > -1 and note < 64 then
-        local coords = apcnotecoords[apcpage][note]
+        local coords = apcnotecoords[page][note]
         local state = 0
         if coords then
             local x, y
@@ -275,7 +278,7 @@ function midigrid.handle_key_midi(event)
                 midigrid.key(x, y, state)
             end
         else
-            local coords = apcnotecoords[apcpage][note]
+            local coords = apcnotecoords[page][note]
             local x, y
             print("missing coords!", x, y, state)
         end

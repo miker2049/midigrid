@@ -28,31 +28,31 @@ if config_name == 'none' then
     print('No supported device found')
 end
 local config = include(config_name)
-local gridnotes = config.grid
+local grid_notes = config.grid
 local brightness_handler = config.brightness_handler
 local device_name = config.device_name
 local og_dev_add, og_dev_remove
 
 -- adding midi device call backs---
 local midigrid = {midi_id = nil}
-midigrid.ledbuf = {}
-midigrid.rows = #gridnotes[1]
-midigrid.cols = #gridnotes
+midigrid.led_buf = {}
+midigrid.rows = #grid_notes[1]
+midigrid.cols = #grid_notes
 
 -- here, using the grid from the config file, we generate the table to help us go the other
 -- way around so, if you press a midi note and you wanna know what it is, this will have an
 -- index with our coordinates
-local note2coords = {}
-for row, notes in ipairs(gridnotes) do
+local notecoords = {}
+for row, notes in ipairs(grid_notes) do
     for col, note in ipairs(notes) do
-        note2coords[note] = {col, row}
+        notecoords[note] = {col, row}
     end
 end
 
 
 function midigrid.find_midi_device_id()
     local found_id = nil
-    for i, dev in pairs(midi.devices) do
+    for _, dev in pairs(midi.devices) do
         local name = string.lower(dev.name)
         if midigrid.name_matches(name) then
             found_id = dev.id
@@ -92,7 +92,6 @@ function midigrid.handle_dev_add(id, name, dev)
     midigrid.update_devices()
     if (midigrid.name_matches(name)) and (id ~= midigrid.midi_id) then
         midigrid.midi_id = id
-        midigrid.device = dev
         midigrid.set_midi_handler()
     end
 end
@@ -106,12 +105,16 @@ end
 
 -- this already expects it to have Midi_id
 function midigrid.set_midi_handler()
-    if midigrid.midi_id == nil then return end
+    if midigrid.midi_id == nil then
+        return
+    end
     if midi.devices[midigrid.midi_id] ~= nil then
         midi.devices[midigrid.midi_id].event = midigrid.handle_key_midi
 
         -- need this for checking .device
         midigrid.device = midi.devices[midigrid.midi_id]
+        print('`midigrid.device` is:')
+        tab.print(midigrid.device)
     else
         midigrid.midi_id = nil
     end
@@ -140,7 +143,7 @@ function midigrid.handle_key_midi(event)
     -- block cc messages, so they can be mapped
     if (event[1] == 0x90 or event[1] == 0x80) then
         local note = event[2]
-        local coords = note2coords[note]
+        local coords = notecoords[note]
         local state = 0
         if coords then
             local x, y
@@ -159,16 +162,16 @@ end
 
 
 -- led handling. *generally speaking*; first we clear the led buffer...
-function midigrid:all(vel)
-    vel = brightness_handler(vel)
-    if self.device then
-        self.ledbuf = {}
+function midigrid:all(brightness)
+    vel = brightness_handler(brightness)
+    if midigrid.device then
+        midigrid.led_buf = {}
         for row = 1, midigrid.rows do
             for col = 1, midigrid.cols do
-                note = gridnotes[row][col]
-                table.insert(self.ledbuf, 0x90)
-                table.insert(self.ledbuf, note)
-                table.insert(self.ledbuf, vel)
+                note = grid_notes[row][col]
+                table.insert(midigrid.led_buf, 0x90)
+                table.insert(midigrid.led_buf, note)
+                table.insert(midigrid.led_buf, vel)
             end
         end
     end
@@ -176,21 +179,21 @@ end
 
 
 -- ...then we update the led buf at our leisure...
-function midigrid:led(col, row, z)
+function midigrid:led(col, row, brightness)
     if (col >= 1 and row >= 1)
             and (col <= midigrid.cols and row <= midigrid.rows) then
-        vel = brightness_handler(z)
-        if self.device then
+        vel = brightness_handler(brightness)
+        if midigrid.device then
 
             -- flag reversed here because thats actually what it is in lua table!!!, see above.
             -- this is clearer either way I think
-            note = gridnotes[row][col]
+            note = grid_notes[row][col]
             if note then
-                table.insert(self.ledbuf, 0x90)
-                table.insert(self.ledbuf, note)
-                table.insert(self.ledbuf, vel)
+                table.insert(midigrid.led_buf, 0x90)
+                table.insert(midigrid.led_buf, note)
+                table.insert(midigrid.led_buf, vel)
             else
-                print('no note found! coordinates... x: ' .. col .. ' y: ' .. row .. ' z: ' .. z)
+                print('no note found! coordinates... x: ' .. col .. ' y: ' .. row .. ' z: ' .. brightness)
             end
         end
     end
@@ -199,11 +202,13 @@ end
 
 -- ...then we send the whole buf at once
 function midigrid:refresh()
-    if self.device then
-        midi.devices[midigrid.midi_id]:send(self.ledbuf)
+    if midigrid.device then
+        midi.devices[midigrid.midi_id]:send(midigrid.led_buf)
 
         -- ...and clear the buffer again.
-        self.ledbuf = {}
+        midigrid.led_buf = {}
+    else
+        print('Error: no device found')
     end
 end
 
