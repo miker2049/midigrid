@@ -43,9 +43,9 @@ midigrid.cols = #gridnotes
 -- way around so, if you press a midi note and you wanna know what it is, this will have an
 -- index with our coordinates
 local note2coords = {}
-for i, v in ipairs(gridnotes) do
-    for j, k in ipairs(v) do
-        note2coords[k] = {j, i}
+for row, notes in ipairs(gridnotes) do
+    for col, note in ipairs(notes) do
+        note2coords[note] = {col, row}
     end
 end
 
@@ -141,12 +141,15 @@ function midigrid.handle_key_midi(event)
     if (event[1] == 0x90 or event[1] == 0x80) then
         local note = event[2]
         local coords = note2coords[note]
-        local x, y
+        local state = 0
         if coords then
+            local x, y
             x, y = coords[1], coords[2]
-            local s = event[1] == 0x90 and 1 or 0
+            if event[1] == 0x90 then  -- note_on
+                state = 1
+            end
             if midigrid.key ~= nil then
-                midigrid.key(x, y, s)
+                midigrid.key(x, y, state)
             end
         else
             print("missing coords!")
@@ -157,12 +160,12 @@ end
 
 -- led handling. *generally speaking*; first we clear the led buffer...
 function midigrid:all(vel)
+    vel = brightness_handler(vel)
     if self.device then
         self.ledbuf = {}
-        for x = 1, #gridnotes do
-            for y = 1, #gridnotes[x] do
-                note = gridnotes[x][y]
-                vel = brightness_handler(vel)
+        for row = 1, midigrid.rows do
+            for col = 1, midigrid.cols do
+                note = gridnotes[row][col]
                 table.insert(self.ledbuf, 0x90)
                 table.insert(self.ledbuf, note)
                 table.insert(self.ledbuf, vel)
@@ -173,21 +176,22 @@ end
 
 
 -- ...then we update the led buf at our leisure...
-function midigrid:led(x, y, z)
-    if self.device then
-
-        -- flag reversed here because thats actually what it is in lua table!!!, see above.
-        -- this is clearer either way I think
-        note = ((x < 9 and x > 0) and (y < 9 and y > 0)) and gridnotes[y][x] or nil
+function midigrid:led(col, row, z)
+    if (col >= 1 and row >= 1)
+            and (col <= midigrid.cols and row <= midigrid.rows) then
         vel = brightness_handler(z)
-        if note then
-            table.insert(self.ledbuf, 0x90)
-            table.insert(self.ledbuf, note)
-            table.insert(self.ledbuf, vel)
-        else
+        if self.device then
 
-            -- debugger, probably want to comment this out if you are being messyy
-            print("no note found! coordinates....  x:" .. x .. "  y:" .. y .. "  z:" .. z)
+            -- flag reversed here because thats actually what it is in lua table!!!, see above.
+            -- this is clearer either way I think
+            note = gridnotes[row][col]
+            if note then
+                table.insert(self.ledbuf, 0x90)
+                table.insert(self.ledbuf, note)
+                table.insert(self.ledbuf, vel)
+            else
+                print('no note found! coordinates... x: ' .. col .. ' y: ' .. row .. ' z: ' .. z)
+            end
         end
     end
 end
