@@ -20,7 +20,7 @@ if config_name == 'none' then
     print('No supported device found')
 end
 local config = include(config_name)
-local grid_notes = config.grid
+local grid_notes = config.grid_notes
 local brightness_handler = config.brightness_handler
 local device_name = config.device_name
 local og_dev_add, og_dev_remove
@@ -54,7 +54,7 @@ for row, notes in ipairs(grid_notes) do
         right_note_coords[note] = {col + 8, row}
     end
 end
-apcnotecoords = {left_note_coords, right_note_coords}
+note_coords = {left_note_coords, right_note_coords}
 
 
 function midigrid.find_midi_device_id()
@@ -71,10 +71,13 @@ end
 
 function midigrid.connect(dummy_id)
     midigrid.set_midi_handler()
+    print('midigrid "' .. device_name .. '" has ' .. midigrid.rows .. ' rows, ' .. midigrid.cols .. ' cols')
+    midigrid:all(0)
+    midigrid:refresh()
 
     -- init on page 1
-    midi.devices[midigrid.midi_id]:send({144, leftpage, 1})
-    midi.devices[midigrid.midi_id]:send({144, rightpage, 0})
+    midi.devices[midigrid.midi_id]:note_on(leftpage, 1)
+    midi.devices[midigrid.midi_id]:note_on(rightpage, 0)
     return midigrid
 end
 
@@ -116,7 +119,9 @@ end
 
 -- this already expects it to have Midi_id
 function midigrid.set_midi_handler()
-    if midigrid.midi_id == nil then return end
+    if midigrid.midi_id == nil then
+        return
+    end
     if midi.devices[midigrid.midi_id] ~= nil then
         midi.devices[midigrid.midi_id].event = midigrid.handle_key_midi
 
@@ -209,8 +214,18 @@ end
 
 -- ...then we send the whole buf at once
 function midigrid:refresh()
+    local local_grid = midi.devices[midigrid.midi_id]
     if midigrid.device then
-        midi.devices[midigrid.midi_id]:send(midigrid.led_buf)
+        local_grid:send(midigrid.led_buf)
+
+        -- apparently, we need to refresh the page leds as well
+        if page == 1 then
+            local_grid:note_on(leftpage, 1)
+            local_grid:note_on(rightpage, 0)
+        elseif page == 2 then
+            local_grid:note_on(leftpage, 0)
+            local_grid:note_on(rightpage, 1)
+        end
 
         -- ...and clear the buffer again.
         midigrid.led_buf = {}
@@ -245,19 +260,24 @@ function midigrid.handle_key_midi(event)
     -- type="cc", cc, val, ch
     -- so, tldr, `event[2]` is what we want
     local note = event[2]
+    local midi_msg = midi.to_msg(event)
     local local_grid = midi.devices[midigrid.midi_id]
 
     -- first, intercept page selectors
     if note == leftpage or note == rightpage then
-        if note == leftpage and event[1] == 0x90 and page ~= 1 then
+        if note == leftpage
+                and midi_msg.type == 'note_on'
+                and page ~= 1 then
             page = 1
-            local_grid:send({144, rightpage, 0})
-            local_grid:send({144, leftpage, 1})
+            local_grid:note_on(rightpage, 0)
+            local_grid:note_on(leftpage, 1)
             midigrid:changepage(page)
-        elseif note == rightpage and event[1] == 0x90 and page ~= 2 then
+        elseif note == rightpage
+                and midi_msg.type == 'note_on'
+                and page ~= 2 then
             page = 2
-            local_grid:send({144, rightpage, 1})
-            local_grid:send({144, leftpage, 0})
+            local_grid:note_on(rightpage, 1)
+            local_grid:note_on(leftpage, 0)
             midigrid:changepage(page)
         else
             -- possibly note_off
@@ -265,25 +285,23 @@ function midigrid.handle_key_midi(event)
 
     -- "musical" notes, i.e. the main 8x8 grid, are in this range, BUT these values are
     -- device-dependent. Reject cc "notes" here.
-    elseif note > -1 and note < 64 then
-        local coords = apcnotecoords[page][note]
+    elseif (note >= 0 and note <= 64)
+            and (midi_msg.type == 'note_on'
+            or midi_msg.type == 'note_off') then
+        local coords = note_coords[page][note]
         local state = 0
         if coords then
             local x, y
             x, y = coords[1], coords[2]
-            if event[1] == 0x90 then  -- note_on
+            if midi_msg.type == 'note_on' then
                 state = 1
             end
             if midigrid.key ~= nil then
                 midigrid.key(x, y, state)
             end
         else
-            local coords = apcnotecoords[page][note]
-            local x, y
-            print("missing coords!", x, y, state)
+            print('missing coords!')
         end
-    else
-        print("unmapped key")
     end
 end
 

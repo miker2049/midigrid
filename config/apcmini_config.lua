@@ -1,7 +1,7 @@
 local apcmini={
   --here we have the 'grid' this looks literally like the grid notes as they are mapped on the apc, they can be changed for other devices
   --note though, that a call to this table will look backwards, i.e, to get the visual x=1 and y=2, you have to enter midigrid[2][1], not the other way around!
-  grid= {{56,57,58,59,60,61,62,63},
+  grid_notes= {{56,57,58,59,60,61,62,63},
     {48,49,50,51,52,53,54,55},
     {40,41,42,43,44,45,46,47},
     {32,33,34,35,36,37,38,39},

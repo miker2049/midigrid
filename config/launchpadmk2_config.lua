@@ -1,7 +1,7 @@
 local launchpad={
   --here we have the 'grid' this looks literally like the grid notes as they are mapped on the apc, they can be changed for other devices
   --note though, that a call to this table will look backwards, i.e, to get the visual x=1 and y=2, you have to enter midigrid[2][1], not the other way around!
-  grid= {
+  grid_notes= {
     {81,82,83,84,85,86,87,88},
     {71,72,73,74,75,76,77,78},
     {61,62,63,64,65,66,67,68},
@@ -24,7 +24,7 @@ local launchpad={
       return 13
     elseif (val > 5) and (val < 8) then --6--7
       --full yellow
-      return 12 
+      return 12
     elseif (val > 7) and (val < 11) then--8-10
       --low pink
       return 54

@@ -1,7 +1,7 @@
 local launchpad={
   --here we have the 'grid' this looks literally like the grid notes as they are mapped on the apc, they can be changed for other devices
   --note though, that a call to this table will look backwards, i.e, to get the visual x=1 and y=2, you have to enter midigrid[2][1], not the other way around!
-  grid= {
+  grid_notes= {
     { 0, 1, 2, 3, 4, 5, 6, 7},
     {16,17,18,19,20,21,22,23},
     {32,33,34,35,36,37,38,39},

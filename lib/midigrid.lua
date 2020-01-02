@@ -28,7 +28,7 @@ if config_name == 'none' then
     print('No supported device found')
 end
 local config = include(config_name)
-local grid_notes = config.grid
+local grid_notes = config.grid_notes
 local brightness_handler = config.brightness_handler
 local device_name = config.device_name
 local og_dev_add, og_dev_remove
@@ -64,6 +64,9 @@ end
 
 function midigrid.connect(dummy_id)
     midigrid.set_midi_handler()
+    print('midigrid "' .. device_name .. '" has ' .. midigrid.rows .. ' rows, ' .. midigrid.cols .. ' cols')
+    midigrid:all(0)
+    midigrid:refresh()
     return midigrid
 end
 
@@ -108,11 +111,12 @@ function midigrid.set_midi_handler()
     if midigrid.midi_id == nil then
         return
     end
-    if midi.devices[midigrid.midi_id] ~= nil then
-        midi.devices[midigrid.midi_id].event = midigrid.handle_key_midi
+    local local_grid = midi.devices[midigrid.midi_id]
+    if local_grid ~= nil then
+        local_grid.event = midigrid.handle_key_midi
 
         -- need this for checking .device
-        midigrid.device = midi.devices[midigrid.midi_id]
+        midigrid.device = local_grid
         print('`midigrid.device` is:')
         tab.print(midigrid.device)
     else
@@ -140,15 +144,18 @@ end
 
 
 function midigrid.handle_key_midi(event)
+    local note = event[2]
+    local midi_msg = midi.to_msg(event)
+    local local_grid = midi.devices[midigrid.midi_id]
     -- block cc messages, so they can be mapped
-    if (event[1] == 0x90 or event[1] == 0x80) then
-        local note = event[2]
+    if (midi_msg.type == 'note_on'
+            or midi_msg.type == 'note_off') then
         local coords = notecoords[note]
         local state = 0
         if coords then
             local x, y
             x, y = coords[1], coords[2]
-            if event[1] == 0x90 then  -- note_on
+            if midi_msg.type == 'note_on' then
                 state = 1
             end
             if midigrid.key ~= nil then
@@ -184,9 +191,6 @@ function midigrid:led(col, row, brightness)
             and (col <= midigrid.cols and row <= midigrid.rows) then
         vel = brightness_handler(brightness)
         if midigrid.device then
-
-            -- flag reversed here because thats actually what it is in lua table!!!, see above.
-            -- this is clearer either way I think
             note = grid_notes[row][col]
             if note then
                 table.insert(midigrid.led_buf, 0x90)
