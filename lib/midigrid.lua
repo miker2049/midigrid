@@ -14,7 +14,9 @@
 local supported_devices = {apcmini = 'apcmini',
                            launchpadmk2 = 'launchpad mk2',
                            launchpadpro = 'launchpad pro 2',
-                           launchpad = 'launchpad'}
+                           launchpad = 'launchpad',
+                           launchpadmini = 'launchpad mini'
+}
 local config_name = 'none'
 for _, dev in pairs(midi.devices) do
     local name = string.lower(dev.name)
@@ -215,6 +217,11 @@ end
 -- ...then we send the whole buf at once
 function midigrid:refresh()
     if midigrid.device then
+      
+        if caps['lp_double_buffer'] then
+          midi.devices[midigrid.midi_id]:send(config:display_double_buffer_sysex())
+        end
+        
         midi.devices[midigrid.midi_id]:send(midigrid.led_buf)
 
         -- ...and clear the buffer again.

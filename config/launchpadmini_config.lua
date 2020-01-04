@@ -47,7 +47,7 @@ local launchpad={
   auxcol = {8,24,40,56,72,88,104,120},
   --need to impletement launchpad row, they are 176 messages instead, which messes stuff up right now
   auxrow = {},
-
+  
   -- table of device-specific capabilities
     caps = {
       -- can we use sysex to update the grid leds?
@@ -81,7 +81,7 @@ local launchpad={
     end
   end,
 
-  device_name='launchpad'
+  device_name='launchpad mini'
 }
 
 return launchpad
