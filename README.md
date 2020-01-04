@@ -12,21 +12,14 @@ Two scripts in the lib folder to include in scripts as 'grid', config files in t
 ## instructions
 Install by downloading this repo into your dust scripts folder, and calling the library like regular norns libraries, i.e, `include('midigrid/lib/midigrid')`.  
 
-`midigrid.lua` and `apcmini_config.lua` is documented in the scripts themselves, setting up a new config file also means it needs to be loaded into the script itself:
-```lua
------------------------------
---loading up config file here
------------------------------
-local config = include('midigrid/config/apcmini_config')
--- local config = include('midigrid/config/launchpad_config')
--- local config = include('midigrid/config/untz_config')
------------------------------
+`midigrid.lua` and `device_config.lua` the script should automatically detect which device you are running and use the correct profile
+currently supported devices are the launchpad, launchpad mini, launchpad mk2 (RGB), Launchpad Pro and apc mini.
 ```
 Then, in whatever script you are working in, it works well to override the global grid object with our own local one:
 ```lua
---adding this to script
+--adding this to script to use and 8x8 gird
 local grid = include('cheapskate/lib/midigrid')
---or this
+--or this to use an 8x16 grid
 local grid = include('cheapskate/lib/midigrid_2pages')
 --which allows this call to work with our midi grid
 local g = grid.connect()
@@ -41,7 +34,8 @@ Finally, each config file has a `device_name` parameter that may need to be adju
 
 ## two page mode
 
-This script aims to emulate a 128 (16x8) grid by spreading a virtual grid buffer over two grid pages that you can toggle with auxiliary buttons
+This script aims to emulate a 128 (16x8) grid by spreading a virtual grid buffer over two grid pages that you can toggle with auxiliary buttons surprisingly this works quite well for the vast majority of scripts if modifier keys are on the second page
+having the modifier key held down when switching pages will keep it held down allowing it to be used across both sides of the grid.
 
 
 <a id="orgd95a7df"></a>
