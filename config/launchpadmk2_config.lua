@@ -1,58 +1,113 @@
-local launchpad={
-  --here we have the 'grid' this looks literally like the grid notes as they are mapped on the apc, they can be changed for other devices
-  --note though, that a call to this table will look backwards, i.e, to get the visual x=1 and y=2, you have to enter midigrid[2][1], not the other way around!
-  grid_notes= {
-    {81,82,83,84,85,86,87,88},
-    {71,72,73,74,75,76,77,78},
-    {61,62,63,64,65,66,67,68},
-    {51,52,53,54,55,56,57,58},
-    {41,42,43,44,45,46,47,48},
-    {31,32,33,34,35,36,37,38},
-    {21,22,23,24,25,26,27,28},
-    {11,12,13,14,15,16,17,18}
+local launchpad = {
+  -- here we have the 'grid'. this looks literally like the grid notes as they are on
+  -- the device.
+  -- note though, that a call to this table will look backwards, i.e, to get the
+  -- visual x=1 and y=2, you have to enter midigrid[2][1], not the other way around!
+  grid_notes = {
+      {81, 82, 83, 84, 85, 86, 87, 88},
+      {71, 72, 73, 74, 75, 76, 77, 78},
+      {61, 62, 63, 64, 65, 66, 67, 68},
+      {51, 52, 53, 54, 55, 56, 57, 58},
+      {41, 42, 43, 44, 45, 46, 47, 48},
+      {31, 32, 33, 34, 35, 36, 37, 38},
+      {21, 22, 23, 24, 25, 26, 27, 28},
+      {11, 12, 13, 14, 15, 16, 17, 18}
   },
-  --here, the function expects a brightness_handler val and spits out another val so your midi controller can understand, these values are generally great for apc with most scripts, but will also need to be adjusted for other controllers!
-  --corresponds here to the launchpad led settings found in the manual
-  brightness_handler = function (val)
-    if val == 0 then
-      return 0
-    elseif (val > 0) and (val < 3) then --0-2
-      --low green
-      return 27
-    elseif (val > 2) and (val < 6) then --3-5
-      --low yellow
-      return 13
-    elseif (val > 5) and (val < 8) then --6--7
-      --full yellow
-      return 12
-    elseif (val > 7) and (val < 11) then--8-10
-      --low pink
-      return 54
-    elseif (val > 10) and (val < 13) then--11-12
-      --full pink
-      return 53
-    elseif (val > 12) and (val < 15) then--13-14
-      --low red
-      return 61
-    elseif (val > 14) and (val < 17) then--15-16
-      --full red
-      return 60
-    else
-      return 0
-    end
+
+
+  --[[ values here correspond to the launchpad mk2 led settings found in the programmer's
+           reference.
+       HOWEVER, the lp pro can do full rgb, so we'll take andvantage of that. this requires
+           sending sysex, and lets us use the full 16 brightness levels. we'll use a table of
+           values directly indexed by the value passed into the fn
+       NOTE! Individual LED brightnesses only range from 0x0-0x3f (i.e. 0-63); 1/4 the
+          resolution of what we're used to (i.e. 0x0-0xff or 0-255)
+  ]]
+  brightness_handler = function(val)
+      local less_angry_rainbow = {
+          '0x00,0x00,0x00',
+          '0x00,0x09,0x19',
+          '0x05,0x16,0x2f',
+          '0x14,0x18,0x34',
+          '0x08,0x07,0x21',
+          '0x12,0x07,0x21',
+          '0x19,0x04,0x22',
+          '0x29,0x0e,0x2b',
+          '0x1f,0x00,0x1a',
+          '0x30,0x04,0x20',
+          '0x34,0x08,0x19',
+          '0x3f,0x15,0x1b',
+          '0x3f,0x19,0x14',
+          '0x3f,0x20,0x0e',
+          '0x3c,0x26,0x0b',
+          '0x37,0x2d,0x0b'
+      }
+      return less_angry_rainbow[val + 1]
   end,
 
-  --these are the keys in the apc to the sides of our apc, not necessary for strict grid emulation but handy!
-  --they are up to down, so 8 is the auxkey to row 1
-  auxcol = {89,79,69,59,49,39,29,19},
-  --need to impletement launchpad row, they are 176 messages instead, which messes stuff up right now
-  auxrow = {},
+  --[[ this is the column of keys on the sides of the grid, not necessary for strict
+       grid emulation but handy!
+       the lp pro round buttons send midi ccs
+  ]]
+  -- top to bottom
+  -- right side
+  auxcol = {89, 79, 69, 59, 49, 39, 29, 19},
+  -- here we set the left and right page buttons for two page mode
+  -- we can simply use the cc # as-is
+  leftpage_button = 89,
+  rightpage_button = 79,
 
-  -- here is setting the left and right page buttons for two page mode
-  leftpage_button=89,
-  rightpage_button=79,
+  -- table of device-specific capabilities
+  caps = {
+    -- can we use sysex to update the grid leds?
+    sysex = true,
+    -- is this an rgb device?
+    rgb = true,
+    -- do the edge buttons send cc?
+    cc_edge_buttons = true
+  },
 
-  device_name='launchpad mk2'
+
+  split_string = function(color)
+      rgb = {}
+      -- '([^,]+)' regex for 'group match any number of characters which are not `,`'
+      for byte in string.gmatch(color, '([^,]+)') do
+          rgb[#rgb + 1] = byte
+      end
+      return rgb[1], rgb[2], rgb[3]
+  end,
+
+
+  led_sysex = function(self, led, color)
+      local set_led_rgb = '0x0b' -- magic number for "set led rgb"
+      -- `color` is e.g. 'ff,f2,e6'
+      r, g, b = self.split_string(color)
+      return self.do_sysex(set_led_rgb, led, r, g, b)
+  end,
+
+
+  all_led_sysex = function(self, color)
+      local set_all_led_rgb = '0x0e' -- magic number for "set ALL leds"
+      r, g, b = self.split_string(color)
+      return self.do_sysex(set_all_led_rgb, r, g, b)
+  end,
+
+
+  do_sysex = function(command, ...)
+      local var_args = ', '
+      for i = 1, select("#", ...) do
+          var_args = var_args .. string.format('%s, ', select(i, ...))
+      end
+      local end_sysex = '0xf7'
+      local sysex_str = string.format('0xf0, 0x00, 0x20, 0x29, 0x02, 0x10, %s%s%s',
+                                      command, var_args, end_sysex)
+      -- print(sysex_str)
+      sysex = tab.split(sysex_str, ', ')
+      return sysex
+  end,
+
+  -- For unknown reason(s), allows us to use programmer mode
+  device_name = 'launchpad mk2'
 }
 
 return launchpad
