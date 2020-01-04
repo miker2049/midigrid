@@ -6,7 +6,10 @@
 local supported_devices = {apcmini = 'apcmini',
                            launchpadmk2 = 'launchpad mk2',
                            launchpadpro = 'launchpad pro 2',
-                           launchpad = 'launchpad'}
+                           launchpad = 'launchpad',
+                           launchpadmini = 'launchpad mini'
+  
+}
 local config_name = 'none'
 for _, dev in pairs(midi.devices) do
     local name = string.lower(dev.name)
@@ -237,6 +240,11 @@ end
 function midigrid:refresh()
     local local_grid = midi.devices[midigrid.midi_id]
     if midigrid.device then
+      
+        if caps['lp_double_buffer'] then
+          midi.devices[midigrid.midi_id]:send(config:display_double_buffer_sysex())
+        end
+      
         local_grid:send(midigrid.led_buf)
 
         -- apparently, we need to refresh the page leds as well
