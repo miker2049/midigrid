@@ -69,7 +69,7 @@ local launchpad = {
 
 
   split_string = function(color)
-      rgb = {}
+      local rgb = {}
       -- '([^,]+)' regex for 'group match any number of characters which are not `,`'
       for byte in string.gmatch(color, '([^,]+)') do
           rgb[#rgb + 1] = byte
@@ -81,14 +81,14 @@ local launchpad = {
   led_sysex = function(self, led, color)
       local set_led_rgb = '0x0b' -- magic number for "set led rgb"
       -- `color` is e.g. 'ff,f2,e6'
-      r, g, b = self.split_string(color)
+      local r, g, b = self.split_string(color)
       return self.do_sysex(set_led_rgb, led, r, g, b)
   end,
 
 
   all_led_sysex = function(self, color)
       local set_all_led_rgb = '0x0e' -- magic number for "set ALL leds"
-      r, g, b = self.split_string(color)
+      local r, g, b = self.split_string(color)
       return self.do_sysex(set_all_led_rgb, r, g, b)
   end,
 
@@ -102,7 +102,7 @@ local launchpad = {
       local sysex_str = string.format('0xf0, 0x00, 0x20, 0x29, 0x02, 0x10, %s%s%s',
                                       command, var_args, end_sysex)
       -- print(sysex_str)
-      sysex = tab.split(sysex_str, ', ')
+      local sysex = tab.split(sysex_str, ', ')
       return sysex
   end,
 

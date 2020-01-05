@@ -8,7 +8,6 @@ local supported_devices = {apcmini = 'apcmini',
                            launchpadpro = 'launchpad pro 2',
                            launchpad = 'launchpad',
                            launchpadmini = 'launchpad mini'
-  
 }
 local config_name = 'none'
 for _, dev in pairs(midi.devices) do
@@ -50,15 +49,15 @@ for rows = 1, midigrid.rows do
 end
 
 -- getting the two pages set up
-left_note_coords = {}
-right_note_coords = {}
+local left_note_coords = {}
+local right_note_coords = {}
 for row, notes in ipairs(grid_notes) do
     for col, note in ipairs(notes) do
         left_note_coords[note] = {col, row}
         right_note_coords[note] = {col + 8, row}
     end
 end
-note_coords = {left_note_coords, right_note_coords}
+local note_coords = {left_note_coords, right_note_coords}
 
 
 function midigrid.find_midi_device_id()
@@ -159,16 +158,16 @@ end
 
 -- led handling. *generally speaking*; first we clear the unchanged led buffer...
 function midigrid:all(brightness)
-    vel = brightness_handler(brightness)
+    local vel = brightness_handler(brightness)
     if midigrid.device then
         for row = 1, midigrid.rows do
             for col = 1, midigrid.cols do
                 if grid_buf[row][col] ~= brightness then  -- this led needs to be set
                     grid_buf[row][col] = brightness
                     if (page == 1 and col < 9) then
-                        note = grid_notes[row][col]
+                        local note = grid_notes[row][col]
                         if caps['sysex'] and caps['rgb'] then
-                            sysex = config:all_led_sysex(vel)
+                            local sysex = config:all_led_sysex(vel)
                             for _, byte in ipairs(sysex) do
                                 table.insert(midigrid.led_buf, byte)
                             end
@@ -178,9 +177,9 @@ function midigrid:all(brightness)
                             table.insert(midigrid.led_buf, vel)
                         end
                     elseif (page == 2 and col > 8) then
-                        note = grid_notes[row][col - 8]
+                        local note = grid_notes[row][col - 8]
                         if caps['sysex'] and caps['rgb'] then
-                            sysex = config:all_led_sysex(vel)
+                            local sysex = config:all_led_sysex(vel)
                             for _, byte in ipairs(sysex) do
                                 table.insert(midigrid.led_buf, byte)
                             end
@@ -201,8 +200,9 @@ end
 function midigrid:led(col, row, brightness)
     if (col >= 1 and row >= 1)
             and (col <= midigrid.cols and row <= midigrid.rows) then
-        vel = brightness_handler(brightness)
+        local vel = brightness_handler(brightness)
         grid_buf[row][col] = brightness
+        local note = nil
 
         -- if we aint on the right page dont bother
         if col >= 9 and page == 1 then
@@ -219,7 +219,7 @@ function midigrid:led(col, row, brightness)
             end
             if note then
                 if caps['sysex'] and caps['rgb'] then
-                    sysex = config:led_sysex(note, vel)
+                    local sysex = config:led_sysex(note, vel)
                     for _, byte in ipairs(sysex) do
                         table.insert(midigrid.led_buf, byte)
                     end
@@ -240,11 +240,11 @@ end
 function midigrid:refresh()
     local local_grid = midi.devices[midigrid.midi_id]
     if midigrid.device then
-      
+
         if caps['lp_double_buffer'] then
           midi.devices[midigrid.midi_id]:send(config:display_double_buffer_sysex())
         end
-      
+
         local_grid:send(midigrid.led_buf)
 
         -- apparently, we need to refresh the page leds as well
