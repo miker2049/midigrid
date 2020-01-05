@@ -1,63 +1,89 @@
---[[ cheapskate library for midi grid devices, 2 pages.
+--[[ cheapskate library for midi grid devices, 2 quads, i.e. a "128" device.
      contains within itself a full 128 grid table, which can be viewed and played by pressing
-     the 'leftpage'/'rightpage' buttons as defined in the relevant config file.
+     the '*_quad_button' buttons as defined in the relevant config file.
 ]]
 
-local supported_devices = {apcmini = 'apcmini',
-                           launchpadmk2 = 'launchpad mk2',
-                           launchpadpro = 'launchpad pro 2',
-                           launchpad = 'launchpad',
-                           launchpadmini = 'launchpad mini'
+-- if there's no *monome* grid attached, norns returns a valid but unpopulated grid table
+-- so must we
+local midigrid = {
+    midi_id = nil,
+    device = nil,
+    rows = 0,
+    cols = 0,
+    name = "none"
 }
-local config_name = 'none'
-for _, dev in pairs(midi.devices) do
-    local name = string.lower(dev.name)
-    for device, device_name in pairs(supported_devices) do
-        if name == device_name then
-            config_name = 'midigrid/config/' .. device .. '_config'
+
+
+brightness_handler = function(val) return 0 end
+
+
+function midigrid.init()
+    local supported_devices = {apcmini = 'apcmini',
+                               launchpadmk2 = 'launchpad mk2',
+                               launchpadpro = 'launchpad pro 2',
+                               launchpad = 'launchpad',
+                               launchpadmini = 'launchpad mini'
+    }
+    local config_name = 'none'
+    config = nil
+    for _, dev in pairs(midi.devices) do
+        local name = string.lower(dev.name)
+        for device, device_name in pairs(supported_devices) do
+            if name == device_name then
+                config_name = 'midigrid/config/' .. device .. '_config'
+            end
         end
     end
-end
-if config_name == 'none' then
-    print('No supported device found')
-end
-local config = include(config_name)
-local grid_notes = config.grid_notes
-local brightness_handler = config.brightness_handler
-local device_name = config.device_name
-local og_dev_add, og_dev_remove
-local caps = config.caps
-local leftpage = config.leftpage_button
-local rightpage = config.rightpage_button
-
--- adding midi device call backs
-local midigrid = {midi_id = nil}
-midigrid.led_buf = {}
-midigrid.rows = #grid_notes[1]
-midigrid.cols = #grid_notes * 2  -- an assumption, but a safe one
-
--- start on "page" 1
-local page = 1
-
--- make the grid buf
-local grid_buf = {}
-for rows = 1, midigrid.rows do
-    grid_buf[rows] = {}
-    for cols = 1, midigrid.cols do
-        grid_buf[rows][cols] = 0
+    if config_name == 'none' then
+        print('No supported device found')
+        return midigrid
     end
-end
+    config = include(config_name)
+    grid_notes = config.grid_notes
+    brightness_handler = config.brightness_handler
+    device_name = config.device_name
+    og_dev_add = nil
+    og_dev_remove = nil
+    caps = config.caps
+    -- This might look odd, but this is based on the idea of a virtual 4-quad device
+    upper_left_quad = config.upper_left_quad_button
+    upper_right_quad = config.upper_right_quad_button
 
--- getting the two pages set up
-local left_note_coords = {}
-local right_note_coords = {}
-for row, notes in ipairs(grid_notes) do
-    for col, note in ipairs(notes) do
-        left_note_coords[note] = {col, row}
-        right_note_coords[note] = {col + 8, row}
+    -- adding midi device call backs
+    midigrid.led_buf = {}
+    midigrid.rows = #grid_notes[1]
+    midigrid.cols = #grid_notes * 2  -- an assumption, but a safe one
+
+    -- start on "quad" 1
+    quad = 1
+
+    -- make the grid buf
+    grid_buf = {}
+    for rows = 1, midigrid.rows do
+        grid_buf[rows] = {}
+        for cols = 1, midigrid.cols do
+            grid_buf[rows][cols] = 0
+        end
     end
+
+    -- getting the two quads set up
+    local upper_left_note_coords = {}
+    local upper_right_note_coords = {}
+    for row, notes in ipairs(grid_notes) do
+        for col, note in ipairs(notes) do
+            upper_left_note_coords[note] = {col, row}
+            upper_right_note_coords[note] = {col + 8, row}
+        end
+    end
+    note_coords = {
+        upper_left_note_coords,
+        upper_right_note_coords
+    }
+
+    -- setting up connection and connection callbacks before returning
+    midigrid.setup_connect_handling()
+    midigrid.update_devices()
 end
-local note_coords = {left_note_coords, right_note_coords}
 
 
 function midigrid.find_midi_device_id()
@@ -73,14 +99,17 @@ end
 
 
 function midigrid.connect(dummy_id)
+    if config == nil then
+        return midigrid
+    end
     midigrid.set_midi_handler()
     print('midigrid "' .. device_name .. '" has ' .. midigrid.rows .. ' rows, ' .. midigrid.cols .. ' cols')
     midigrid:all(0)
     midigrid:refresh()
 
-    -- init on page 1
-    midi.devices[midigrid.midi_id]:note_on(leftpage, 1)
-    midi.devices[midigrid.midi_id]:note_on(rightpage, 0)
+    -- init on quad 1
+    midi.devices[midigrid.midi_id]:note_on(upper_left_quad, 1)
+    midi.devices[midigrid.midi_id]:note_on(upper_right_quad, 0)
     return midigrid
 end
 
@@ -164,7 +193,7 @@ function midigrid:all(brightness)
             for col = 1, midigrid.cols do
                 if grid_buf[row][col] ~= brightness then  -- this led needs to be set
                     grid_buf[row][col] = brightness
-                    if (page == 1 and col < 9) then
+                    if (quad == 1 and col < 9) then
                         local note = grid_notes[row][col]
                         if caps['sysex'] and caps['rgb'] then
                             local sysex = config:all_led_sysex(vel)
@@ -176,7 +205,7 @@ function midigrid:all(brightness)
                             table.insert(midigrid.led_buf, note)
                             table.insert(midigrid.led_buf, vel)
                         end
-                    elseif (page == 2 and col > 8) then
+                    elseif (quad == 2 and col > 8) then
                         local note = grid_notes[row][col - 8]
                         if caps['sysex'] and caps['rgb'] then
                             local sysex = config:all_led_sysex(vel)
@@ -201,20 +230,21 @@ function midigrid:led(col, row, brightness)
     if (col >= 1 and row >= 1)
             and (col <= midigrid.cols and row <= midigrid.rows) then
         local vel = brightness_handler(brightness)
+        local note = nil
         grid_buf[row][col] = brightness
         local note = nil
 
-        -- if we aint on the right page dont bother
-        if col >= 9 and page == 1 then
+        -- if we aint on the right quad dont bother
+        if col >= 9 and quad == 1 then
             return
         end
-        if col <= 8 and page == 2 then
+        if col <= 8 and quad == 2 then
             return
         end
         if midigrid.device then
-            if page == 1 then
+            if quad == 1 then
                 note = grid_notes[row][col]
-            elseif page == 2 then
+            elseif quad == 2 then
                 note = grid_notes[row][col - 8]
             end
             if note then
@@ -240,20 +270,18 @@ end
 function midigrid:refresh()
     local local_grid = midi.devices[midigrid.midi_id]
     if midigrid.device then
-
         if caps['lp_double_buffer'] then
-          midi.devices[midigrid.midi_id]:send(config:display_double_buffer_sysex())
+            local_grid:send(config:display_double_buffer_sysex())
         end
-
         local_grid:send(midigrid.led_buf)
 
-        -- apparently, we need to refresh the page leds as well
-        if page == 1 then
-            local_grid:note_on(leftpage, 1)
-            local_grid:note_on(rightpage, 0)
-        elseif page == 2 then
-            local_grid:note_on(leftpage, 0)
-            local_grid:note_on(rightpage, 1)
+        -- apparently, we need to refresh the quad leds as well
+        if quad == 1 then
+            local_grid:note_on(upper_left_quad, 1)
+            local_grid:note_on(upper_right_quad, 0)
+        elseif quad == 2 then
+            local_grid:note_on(upper_left_quad, 0)
+            local_grid:note_on(upper_right_quad, 1)
         end
 
         -- ...and clear the buffer again.
@@ -265,15 +293,15 @@ end
 
 
 -- surely there is more elegant way!
-function midigrid:changepage(page)
+function midigrid:changequad(quad)
     midigrid.led_buf = {}
-    if page == 1 then
+    if quad == 1 then
         for row = 1, midigrid.rows do
             for col = 1, midigrid.cols - 8  do
                 midigrid:led(col, row, grid_buf[row][col])
             end
         end
-    elseif page == 2 then
+    elseif quad == 2 then
         for row = 1, midigrid.rows do
             for col = midigrid.cols - 7, midigrid.cols do
                 midigrid:led(col, row, grid_buf[row][col])
@@ -292,22 +320,22 @@ function midigrid.handle_key_midi(event)
     local midi_msg = midi.to_msg(event)
     local local_grid = midi.devices[midigrid.midi_id]
 
-    -- first, intercept page selectors
-    if note == leftpage or note == rightpage then
-        if note == leftpage
+    -- first, intercept quad selectors
+    if note == upper_left_quad or note == upper_right_quad then
+        if note == upper_left_quad
                 and (midi_msg.type == 'note_on' or caps['cc_edge_buttons'])
-                and page ~= 1 then
-            page = 1
-            local_grid:note_on(rightpage, 0)
-            local_grid:note_on(leftpage, 1)
-            midigrid:changepage(page)
-        elseif note == rightpage
+                and quad ~= 1 then
+            quad = 1
+            local_grid:note_on(upper_right_quad, 0)
+            local_grid:note_on(upper_left_quad, 1)
+            midigrid:changequad(quad)
+        elseif note == upper_right_quad
                 and (midi_msg.type == 'note_on' or caps['cc_edge_buttons'])
-                and page ~= 2 then
-            page = 2
-            local_grid:note_on(rightpage, 1)
-            local_grid:note_on(leftpage, 0)
-            midigrid:changepage(page)
+                and quad ~= 2 then
+            quad = 2
+            local_grid:note_on(upper_right_quad, 1)
+            local_grid:note_on(upper_left_quad, 0)
+            midigrid:changequad(quad)
         else
             -- possibly note_off
         end
@@ -317,7 +345,7 @@ function midigrid.handle_key_midi(event)
     elseif (note >= 0 and note <= 88)
             and (midi_msg.type == 'note_on'
             or midi_msg.type == 'note_off') then
-        local coords = note_coords[page][note]
+        local coords = note_coords[quad][note]
         local state = 0
         if coords then
             local x, y
@@ -334,8 +362,6 @@ function midigrid.handle_key_midi(event)
     end
 end
 
--- init on page 1
-midigrid.setup_connect_handling()
-midigrid.update_devices()
+midigrid.init()
 
 return midigrid

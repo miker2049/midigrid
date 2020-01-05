@@ -52,10 +52,13 @@ local launchpad = {
   -- top to bottom
   -- right side
   auxcol = {89, 79, 69, 59, 49, 39, 29, 19},
-  -- here we set the left and right page buttons for two page mode
-  -- we can simply use the cc # as-is
-  leftpage_button = 89,
-  rightpage_button = 79,
+
+  -- here we set the buttons to use when switching quads in multi-quad mode
+  upper_left_quad_button = 89,
+  upper_right_quad_button = 79,
+  -- TODO: contributors with this device - please fill this in
+  -- lower_left_quad_button = ??,
+  -- lower_right_quad_button = ??,
 
   -- table of device-specific capabilities
   caps = {

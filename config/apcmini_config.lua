@@ -32,9 +32,12 @@ local apcmini={
   --left to right, 64 is aux key to column 1
   auxrow = {64,65,66,67,68,69,70,71},
 
-  -- here is setting the left and right page buttons for two page mode
-  leftpage_button=66,
-  rightpage_button=67,
+  -- here we set the buttons to use when switching quads in multi-quad mode
+  upper_left_quad_button = 66,
+  upper_right_quad_button = 67,
+  -- TODO: contributors with this device - please fill this in
+  -- lower_left_quad_button = ??,
+  -- lower_right_quad_button = ??,
 
   device_name='apc mini'
 }
