@@ -149,7 +149,6 @@ end
 function midigrid.handle_key_midi(event)
     local note = event[2]
     local midi_msg = midi.to_msg(event)
-    local local_grid = midi.devices[midigrid.midi_id]
     -- block cc messages, so they can be mapped
     if (midi_msg.type == 'note_on'
             or midi_msg.type == 'note_off') then
@@ -173,12 +172,12 @@ end
 
 -- led handling. *generally speaking*; first we clear the led buffer...
 function midigrid:all(brightness)
-    vel = brightness_handler(brightness)
+    local vel = brightness_handler(brightness)
     if midigrid.device then
         midigrid.led_buf = {}
         for row = 1, midigrid.rows do
             for col = 1, midigrid.cols do
-                note = grid_notes[row][col]
+                local note = grid_notes[row][col]
                 table.insert(midigrid.led_buf, 0x90)
                 table.insert(midigrid.led_buf, note)
                 table.insert(midigrid.led_buf, vel)
@@ -192,12 +191,12 @@ end
 function midigrid:led(col, row, brightness)
     if (col >= 1 and row >= 1)
             and (col <= midigrid.cols and row <= midigrid.rows) then
-        vel = brightness_handler(brightness)
+        local vel = brightness_handler(brightness)
         if midigrid.device then
-            note = grid_notes[row][col]
+            local note = grid_notes[row][col]
             if note then
                 if caps['sysex'] and caps['rgb'] then
-                    sysex = config:led_sysex(note, vel)
+                    local sysex = config:led_sysex(note, vel)
                     for _, byte in ipairs(sysex) do
                         table.insert(midigrid.led_buf, byte)
                     end
@@ -217,11 +216,9 @@ end
 -- ...then we send the whole buf at once
 function midigrid:refresh()
     if midigrid.device then
-      
         if caps['lp_double_buffer'] then
-          midi.devices[midigrid.midi_id]:send(config:display_double_buffer_sysex())
+            midi.devices[midigrid.midi_id]:send(config:display_double_buffer_sysex())
         end
-        
         midi.devices[midigrid.midi_id]:send(midigrid.led_buf)
 
         -- ...and clear the buffer again.
