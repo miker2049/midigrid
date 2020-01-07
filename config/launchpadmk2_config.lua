@@ -56,9 +56,8 @@ local launchpad = {
   -- here we set the buttons to use when switching quads in multi-quad mode
   upper_left_quad_button = 89,
   upper_right_quad_button = 79,
-  -- TODO: contributors with this device - please fill this in
-  -- lower_left_quad_button = ??,
-  -- lower_right_quad_button = ??,
+  lower_left_quad_button = 69,
+  lower_right_quad_button = 59,
 
   -- table of device-specific capabilities
   caps = {
@@ -66,6 +65,8 @@ local launchpad = {
     sysex = true,
     -- is this an rgb device?
     rgb = true,
+    -- can we double buffer?
+    lp_double_buffer = false,
     -- do the edge buttons send cc?
     cc_edge_buttons = true
   },
