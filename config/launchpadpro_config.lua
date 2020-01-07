@@ -1,6 +1,10 @@
 --[[ Launchpad Pro's Programmer ("orange") mode is *required* for this to work.
      No other setup should be necessary, on either the LP or the norns/fates side.
 ]]
+<<<<<<< HEAD
+=======
+
+>>>>>>> 36acf2f... Implement 4-quad ("256") mode. This requires a little bit of refactoring for "2-page" mode, and the various device config files
 local launchpad = {
     -- here we have the 'grid'. this looks literally like the grid notes as they are on
     -- the device.
@@ -63,19 +67,23 @@ local launchpad = {
     -- bottom
     auxrow2 = {1, 2, 3, 4, 5, 6, 7, 8},
 
-    -- here we set the left and right page buttons for two page mode
+    -- here we set the buttons to use when switching quads in multi-quad mode
     -- we can simply use the cc # as-is
-    leftpage_button = 93,
-    rightpage_button = 94,
+    upper_left_quad_button = 91,
+    upper_right_quad_button = 92,
+    lower_left_quad_button = 93,
+    lower_right_quad_button = 94,
 
     -- table of device-specific capabilities
     caps = {
-      -- can we use sysex to update the grid leds?
-      sysex = true,
-      -- is this an rgb device?
-      rgb = true,
-      -- do the edge buttons send cc?
-      cc_edge_buttons = true
+        -- can we use sysex to update the grid leds?
+        sysex = true,
+        -- is this an rgb device?
+        rgb = true,
+        -- can we double buffer?
+        lp_double_buffer = false,
+        -- do the edge buttons send cc?
+        cc_edge_buttons = true
     },
 
 
@@ -112,7 +120,6 @@ local launchpad = {
         local end_sysex = '0xf7'
         local sysex_str = string.format('0xf0, 0x00, 0x20, 0x29, 0x02, 0x10, %s%s%s',
                                         command, var_args, end_sysex)
-        -- print(sysex_str)
         local sysex = tab.split(sysex_str, ', ')
         return sysex
     end,

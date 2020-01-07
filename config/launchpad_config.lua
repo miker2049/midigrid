@@ -51,7 +51,7 @@ local launchpad={
   -- table of device-specific capabilities
     caps = {
       -- can we use sysex to update the grid leds?
-      -- TODO on the launchpad we could use sysex to fast update all leds at refresh. 
+      -- TODO on the launchpad we could use sysex to fast update all leds at refresh.
       -- This would require a custom midigred led and refreash methods as 2 leds are written at once!
       sysex = false,
       -- is this an rgb device?
@@ -62,13 +62,15 @@ local launchpad={
       cc_edge_buttons = true
     },
 
-  -- here is setting the left and right page buttons for two page mode
-  leftpage_button=8,
-  rightpage_button=24,
-  
+  -- here we set the buttons to use when switching quads in multi-quad mode
+  upper_left_quad_button = 8,
+  upper_right_quad_button = 24,
+  lower_left_quad_button = 40,
+  lower_right_quad_button = 56,
+
   -- somewhere to keep track of current displayed buffer in double buffer mode
   current_double_buffer = 0,
-  
+
   display_double_buffer_sysex = function(self)
     if (self.current_display_buffer == 0) then
       self.current_display_buffer = 1
