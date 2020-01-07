@@ -65,9 +65,8 @@ local launchpad={
   -- here we set the buttons to use when switching quads in multi-quad mode
   upper_left_quad_button = 8,
   upper_right_quad_button = 24,
-  -- TODO: contributors with this device - please fill this in
-  -- lower_left_quad_button = ??,
-  -- lower_right_quad_button = ??,
+  lower_left_quad_button = 40,
+  lower_right_quad_button = 56,
 
   -- somewhere to keep track of current displayed buffer in double buffer mode
   current_double_buffer = 0,
