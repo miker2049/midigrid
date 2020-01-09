@@ -46,10 +46,10 @@ function midigrid.init()
     og_dev_add = nil
     og_dev_remove = nil
     caps = config.caps
-    upper_left_quad = config.upper_left_quad_button
-    upper_right_quad = config.upper_right_quad_button
-    lower_left_quad = config.lower_left_quad_button
-    lower_right_quad = config.lower_right_quad_button
+    upper_left_quad_btn = config.upper_left_quad_button
+    upper_right_quad_btn = config.upper_right_quad_button
+    lower_left_quad_btn = config.lower_left_quad_button
+    lower_right_quad_btn = config.lower_right_quad_button
 
     -- adding midi device call backs
     midigrid.led_buf = {}
@@ -91,6 +91,7 @@ function midigrid.init()
     -- setting up connection and connection callbacks before returning
     midigrid.setup_connect_handling()
     midigrid.update_devices()
+    _local_midi_dev = midi.devices[midigrid.midi_id]
 end
 
 
@@ -106,21 +107,35 @@ function midigrid.find_midi_device_id()
 end
 
 
+function _light_quad_button(which_quad)
+    local quads = {
+            upper_left_quad_btn,
+            upper_right_quad_btn,
+            lower_left_quad_btn,
+            lower_right_quad_btn
+
+    }
+    for quad, _ in ipairs(quads) do
+        if quad == which_quad then
+            _local_midi_dev:note_on(quads[quad], 1)
+        else
+            _local_midi_dev:note_on(quads[quad], 0)
+        end
+    end
+end
+
+
 function midigrid.connect(dummy_id)
     if config == nil then
         return midigrid
     end
     midigrid.set_midi_handler()
-    local local_grid = midi.devices[midigrid.midi_id]
     print('midigrid "' .. device_name .. '" has ' .. midigrid.rows .. " rows, " .. midigrid.cols .. " cols")
     midigrid:all(0)
     midigrid:refresh()
 
-    -- init on page 1
-    local_grid:note_on(upper_left_quad, 1)
-    local_grid:note_on(upper_right_quad, 0)
-    local_grid:note_on(lower_left_quad, 0)
-    local_grid:note_on(lower_right_quad, 0)
+    -- init on quad 1
+    _light_quad_button(1)
     return midigrid
 end
 
@@ -197,6 +212,25 @@ function midigrid.update_devices()
 end
 
 
+function _brightness_to_buffer(note, vel, sysex_fn)
+    local sysex = nil
+    if caps["sysex"] and caps["rgb"] then
+        if sysex_fn == 'all_led_sysex' then
+            sysex = config:all_led_sysex(vel)
+        elseif sysex_fn == 'led_sysex' then
+            sysex = config:led_sysex(note, vel)
+        end
+        for _, byte in ipairs(sysex) do
+            table.insert(midigrid.led_buf, byte)
+        end
+    else
+        table.insert(midigrid.led_buf, 0x90)
+        table.insert(midigrid.led_buf, note)
+        table.insert(midigrid.led_buf, vel)
+    end
+end
+
+
 -- led handling. *generally speaking*; first we clear the unchanged led buffer...
 function midigrid:all(brightness)
     local vel = brightness_handler(brightness)
@@ -207,53 +241,14 @@ function midigrid:all(brightness)
                     grid_buf[row][col] = brightness
                     if (quad == 1 and (col < 9 and row < 9)) then
                         local note = grid_notes[row][col]
-                        if caps["sysex"] and caps["rgb"] then
-                            local sysex = config:all_led_sysex(vel)
-                            for _, byte in ipairs(sysex) do
-                                table.insert(midigrid.led_buf, byte)
-                            end
-                        else
-                            table.insert(midigrid.led_buf, 0x90)
-                            table.insert(midigrid.led_buf, note)
-                            table.insert(midigrid.led_buf, vel)
-                        end
                     elseif (quad == 2 and (col > 8 and row < 9)) then
                         local note = grid_notes[row][col - 8]
-                        if caps["sysex"] and caps["rgb"] then
-                            local sysex = config:all_led_sysex(vel)
-                            for _, byte in ipairs(sysex) do
-                                table.insert(midigrid.led_buf, byte)
-                            end
-                        else
-                            table.insert(midigrid.led_buf, 0x90)
-                            table.insert(midigrid.led_buf, note)
-                            table.insert(midigrid.led_buf, vel)
-                        end
                     elseif (quad == 3 and (col < 9 and row > 8)) then
                         local note = grid_notes[row - 8][col]
-                        if caps["sysex"] and caps["rgb"] then
-                            local sysex = config:all_led_sysex(vel)
-                            for _, byte in ipairs(sysex) do
-                                table.insert(midigrid.led_buf, byte)
-                            end
-                        else
-                            table.insert(midigrid.led_buf, 0x90)
-                            table.insert(midigrid.led_buf, note)
-                            table.insert(midigrid.led_buf, vel)
-                        end
                     elseif (quad == 4 and (col > 8 and row > 8)) then
                         local note = grid_notes[row - 8][col - 8]
-                        if caps["sysex"] and caps["rgb"] then
-                            local sysex = config:all_led_sysex(vel)
-                            for _, byte in ipairs(sysex) do
-                                table.insert(midigrid.led_buf, byte)
-                            end
-                        else
-                            table.insert(midigrid.led_buf, 0x90)
-                            table.insert(midigrid.led_buf, note)
-                            table.insert(midigrid.led_buf, vel)
-                        end
                     end
+                    _brightness_to_buffer(note, vel, 'all_led_sysex')
                 end
             end
         end
@@ -292,16 +287,7 @@ function midigrid:led(col, row, brightness)
                 note = grid_notes[row - 8][col - 8]
             end
             if note then
-                if caps["sysex"] and caps["rgb"] then
-                    local sysex = config:led_sysex(note, vel)
-                    for _, byte in ipairs(sysex) do
-                        table.insert(midigrid.led_buf, byte)
-                    end
-                else
-                    table.insert(midigrid.led_buf, 0x90)
-                    table.insert(midigrid.led_buf, note)
-                    table.insert(midigrid.led_buf, vel)
-                end
+                _brightness_to_buffer(note, vel, 'led_sysex')
             else
                 print("no note found! coordinates... x: " .. col .. " y: " .. row .. " z: " .. brightness)
             end
@@ -310,37 +296,16 @@ function midigrid:led(col, row, brightness)
 end
 
 
--- ...then we send the whole buf at once
+-- ...then we send the whole buf at once...
 function midigrid:refresh()
-    local local_grid = midi.devices[midigrid.midi_id]
     if midigrid.device then
         if caps['lp_double_buffer'] then
-            local_grid:send(config:display_double_buffer_sysex())
+            _local_midi_dev:send(config:display_double_buffer_sysex())
         end
-        local_grid:send(midigrid.led_buf)
+        _local_midi_dev:send(midigrid.led_buf)
 
         -- apparently, we need to refresh the quad button leds as well
-        if quad == 1 then
-            local_grid:note_on(upper_left_quad, 1)
-            local_grid:note_on(upper_right_quad, 0)
-            local_grid:note_on(lower_left_quad, 0)
-            local_grid:note_on(lower_right_quad, 0)
-        elseif quad == 2 then
-            local_grid:note_on(upper_left_quad, 0)
-            local_grid:note_on(upper_right_quad, 1)
-            local_grid:note_on(lower_left_quad, 0)
-            local_grid:note_on(lower_right_quad, 0)
-        elseif quad == 3 then
-            local_grid:note_on(upper_left_quad, 0)
-            local_grid:note_on(upper_right_quad, 0)
-            local_grid:note_on(lower_left_quad, 1)
-            local_grid:note_on(lower_right_quad, 0)
-        elseif quad == 4 then
-            local_grid:note_on(upper_left_quad, 0)
-            local_grid:note_on(upper_right_quad, 0)
-            local_grid:note_on(lower_left_quad, 0)
-            local_grid:note_on(lower_right_quad, 1)
-        end
+        _light_quad_button(quad)
 
         -- ...and clear the buffer again.
         midigrid.led_buf = {}
@@ -382,55 +347,39 @@ function midigrid.changequad(quad)
 end
 
 
+function _handle_quad(midi_msg, which_quad)
+    if midi_msg.type == "note_on" or caps["cc_edge_buttons"] then
+        quad = which_quad
+        _light_quad_button(quad)
+        midigrid.changequad(quad)
+    end
+end
+
+
 function midigrid.handle_key_midi(event)
     -- type="note_on", note, vel, ch
     -- type="cc", cc, val, ch
     -- so, tldr, `event[2]` is what we want
     local note = event[2]
     local midi_msg = midi.to_msg(event)
-    local local_grid = midi.devices[midigrid.midi_id]
 
     -- first, intercept quad selectors
-    if (note == upper_left_quad or note == upper_right_quad
-            or note == lower_left_quad or note == lower_right_quad) then
+    if (note == upper_left_quad_btn or note == upper_right_quad_btn
+            or note == lower_left_quad_btn or note == lower_right_quad_btn) then
         -- "musical" notes, i.e. the main 8x8 grid, are in this range, BUT these values are
         -- device-dependent. Reject cc "notes" here.
-        if note == upper_left_quad
-                and (midi_msg.type == "note_on" or caps["cc_edge_buttons"])
+        if note == upper_left_quad_btn
                 and quad ~= 1 then
-            quad = 1
-            local_grid:note_on(upper_left_quad, 1)
-            local_grid:note_on(upper_right_quad, 0)
-            local_grid:note_on(lower_left_quad, 0)
-            local_grid:note_on(lower_right_quad, 0)
-            midigrid.changequad(quad)
-        elseif note == upper_right_quad
-                and (midi_msg.type == "note_on" or caps["cc_edge_buttons"])
+            _handle_quad(midi_msg, 1)
+        elseif note == upper_right_quad_btn
                 and quad ~= 2 then
-            quad = 2
-            local_grid:note_on(upper_left_quad, 0)
-            local_grid:note_on(upper_right_quad, 1)
-            local_grid:note_on(lower_left_quad, 0)
-            local_grid:note_on(lower_right_quad, 0)
-            midigrid.changequad(quad)
-        elseif note == lower_left_quad
-                and (midi_msg.type == "note_on" or caps["cc_edge_buttons"])
+            _handle_quad(midi_msg, 2)
+        elseif note == lower_left_quad_btn
                 and quad ~= 3 then
-            quad = 3
-            local_grid:note_on(upper_left_quad, 0)
-            local_grid:note_on(upper_right_quad, 0)
-            local_grid:note_on(lower_left_quad, 1)
-            local_grid:note_on(lower_right_quad, 0)
-            midigrid.changequad(quad)
-        elseif note == lower_right_quad
-                and (midi_msg.type == "note_on" or caps["cc_edge_buttons"])
+            _handle_quad(midi_msg, 3)
+        elseif note == lower_right_quad_btn
                 and quad ~= 4 then
-            quad = 4
-            local_grid:note_on(upper_left_quad, 0)
-            local_grid:note_on(upper_right_quad, 0)
-            local_grid:note_on(lower_left_quad, 0)
-            local_grid:note_on(lower_right_quad, 1)
-            midigrid.changequad(quad)
+            _handle_quad(midi_msg, 4)
         else
             -- possibly note_off
         end
