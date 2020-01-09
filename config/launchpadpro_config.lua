@@ -1,10 +1,7 @@
 --[[ Launchpad Pro's Programmer ("orange") mode is *required* for this to work.
      No other setup should be necessary, on either the LP or the norns/fates side.
 ]]
-<<<<<<< HEAD
-=======
 
->>>>>>> 36acf2f... Implement 4-quad ("256") mode. This requires a little bit of refactoring for "2-page" mode, and the various device config files
 local launchpad = {
     -- here we have the 'grid'. this looks literally like the grid notes as they are on
     -- the device.
