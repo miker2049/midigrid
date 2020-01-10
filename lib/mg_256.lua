@@ -46,10 +46,17 @@ function midigrid.init()
     og_dev_add = nil
     og_dev_remove = nil
     caps = config.caps
-    upper_left_quad_btn = config.upper_left_quad_button
-    upper_right_quad_btn = config.upper_right_quad_button
-    lower_left_quad_btn = config.lower_left_quad_button
-    lower_right_quad_btn = config.lower_right_quad_button
+
+    -- defined so that our table's indices correspond to the quad numbers we've decided on:
+    --     1|2
+    --     ---
+    --     3|4
+    quad_btns = {
+        config.upper_left_quad_button,
+        config.upper_right_quad_button,
+        config.lower_left_quad_button,
+        config.lower_right_quad_button
+    }
 
     -- adding midi device call backs
     midigrid.led_buf = {}
@@ -108,18 +115,13 @@ end
 
 
 function _light_quad_button(which_quad)
-    local quads = {
-            upper_left_quad_btn,
-            upper_right_quad_btn,
-            lower_left_quad_btn,
-            lower_right_quad_btn
-
-    }
-    for quad, _ in ipairs(quads) do
+  -- regardless of which quad button we wish to light, we still have to turn
+  --     off all the others
+    for quad, _ in ipairs(quad_btns) do
         if quad == which_quad then
-            _local_midi_dev:note_on(quads[quad], 1)
+            _local_midi_dev:note_on(quad_btns[quad], 1)
         else
-            _local_midi_dev:note_on(quads[quad], 0)
+            _local_midi_dev:note_on(quad_btns[quad], 0)
         end
     end
 end
@@ -212,15 +214,11 @@ function midigrid.update_devices()
 end
 
 
-function _brightness_to_buffer(note, vel, sysex_fn)
-    local sysex = nil
+function _brightness_to_buffer(result)
+    -- `result` is the table returned by whichever led fn we called as an arg to
+    --     *this* fn
     if caps["sysex"] and caps["rgb"] then
-        if sysex_fn == 'all_led_sysex' then
-            sysex = config:all_led_sysex(vel)
-        elseif sysex_fn == 'led_sysex' then
-            sysex = config:led_sysex(note, vel)
-        end
-        for _, byte in ipairs(sysex) do
+        for _, byte in ipairs(result) do
             table.insert(midigrid.led_buf, byte)
         end
     else
@@ -248,7 +246,8 @@ function midigrid:all(brightness)
                     elseif (quad == 4 and (col > 8 and row > 8)) then
                         local note = grid_notes[row - 8][col - 8]
                     end
-                    _brightness_to_buffer(note, vel, 'all_led_sysex')
+                    -- the result of the fn call becomes the arg to `_brightness_to_buffer`
+                    _brightness_to_buffer(config:all_led_sysex(vel))
                 end
             end
         end
@@ -287,7 +286,8 @@ function midigrid:led(col, row, brightness)
                 note = grid_notes[row - 8][col - 8]
             end
             if note then
-                _brightness_to_buffer(note, vel, 'led_sysex')
+                -- the result of the fn call becomes the arg to `_brightness_to_buffer`
+                _brightness_to_buffer(config:led_sysex(note, vel))
             else
                 print("no note found! coordinates... x: " .. col .. " y: " .. row .. " z: " .. brightness)
             end
@@ -363,26 +363,18 @@ function midigrid.handle_key_midi(event)
     local note = event[2]
     local midi_msg = midi.to_msg(event)
 
-    -- first, intercept quad selectors
-    if (note == upper_left_quad_btn or note == upper_right_quad_btn
-            or note == lower_left_quad_btn or note == lower_right_quad_btn) then
-        -- "musical" notes, i.e. the main 8x8 grid, are in this range, BUT these values are
-        -- device-dependent. Reject cc "notes" here.
-        if note == upper_left_quad_btn
-                and quad ~= 1 then
-            _handle_quad(midi_msg, 1)
-        elseif note == upper_right_quad_btn
-                and quad ~= 2 then
-            _handle_quad(midi_msg, 2)
-        elseif note == lower_left_quad_btn
-                and quad ~= 3 then
-            _handle_quad(midi_msg, 3)
-        elseif note == lower_right_quad_btn
-                and quad ~= 4 then
-            _handle_quad(midi_msg, 4)
-        else
-            -- possibly note_off
+    -- first, intercept the quad buttons...
+    if tab.contains(quad_btns, note) then
+        for local_quad, button in ipairs(quad_btns) do
+            if note == button
+                    and quad ~= local_quad then
+                -- ...and change the quad, if needed
+                _handle_quad(midi_msg, local_quad)
+            end
         end
+
+    -- "musical" notes, i.e. the main 8x8 grid, are in this range, BUT these values are
+    -- device-dependent. Reject cc "notes" here.
     elseif (note >= 0 and note <= 88)
             and (midi_msg.type == "note_on" or midi_msg.type == "note_off") then
         local coords = note_coords[quad][note]
