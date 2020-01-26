@@ -172,11 +172,12 @@ function midigrid.set_midi_handler()
     if midigrid.midi_id == nil then
         return
     end
-    if midi.devices[midigrid.midi_id] ~= nil then
-        midi.devices[midigrid.midi_id].event = midigrid.handle_key_midi
+    local local_grid = midi.devices[midigrid.midi_id]
+    if local_grid ~= nil then
+        local_grid.event = midigrid.handle_key_midi
 
         -- need this for checking .device
-        midigrid.device = midi.devices[midigrid.midi_id]
+        midigrid.device = local_grid
         print('`midigrid.device` is:')
         tab.print(midigrid.device)
     else
@@ -203,12 +204,12 @@ function midigrid.update_devices()
 end
 
 
-function _brightness_to_buffer(result)
+function _brightness_to_buffer(note, vel, result)
     -- `result` is the table returned by whichever led fn we called as an arg to
     --     *this* fn
     if caps["sysex"] and caps["rgb"] then
-        for _, byte in ipairs(result) do
-            table.insert(midigrid.led_buf, byte)
+        for _, bytes in ipairs(result) do
+            table.insert(midigrid.led_buf, bytes)
         end
     else
         table.insert(midigrid.led_buf, 0x90)
@@ -221,18 +222,19 @@ end
 -- led handling. *generally speaking*; first we clear the unchanged led buffer...
 function midigrid:all(brightness)
     local vel = brightness_handler(brightness)
+    local note = nil
     if midigrid.device then
         for row = 1, midigrid.rows do
             for col = 1, midigrid.cols do
                 if grid_buf[row][col] ~= brightness then  -- this led needs to be set
                     grid_buf[row][col] = brightness
                     if (quad == 1 and col < 9) then
-                        local note = grid_notes[row][col]
+                        note = grid_notes[row][col]
                     elseif (quad == 2 and col > 8) then
-                        local note = grid_notes[row][col - 8]
+                        note = grid_notes[row][col - 8]
                     end
                     -- the result of the fn call becomes the arg to `_brightness_to_buffer`
-                    _brightness_to_buffer(config:all_led_sysex(vel))
+                    _brightness_to_buffer(note, vel, config:all_led_sysex(vel))
                 end
             end
         end
@@ -262,7 +264,7 @@ function midigrid:led(col, row, brightness)
             end
             if note then
                 -- the result of the fn call becomes the arg to `_brightness_to_buffer`
-                _brightness_to_buffer(config:led_sysex(note, vel))
+                _brightness_to_buffer(note, vel, config:led_sysex(note, vel))
             else
                 print('no note found! coordinates... x: ' .. col .. ' y: ' .. row .. ' z: ' .. brightness)
             end
