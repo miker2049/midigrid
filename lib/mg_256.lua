@@ -290,7 +290,7 @@ function midigrid:led(col, row, brightness)
             if note then
                 -- the result of the fn call becomes the arg to `_brightness_to_buffer`
                 _brightness_to_buffer(note, vel, config:led_sysex(note, vel))
-4            else
+            else
                 print("no note found! coordinates... x: " .. col .. " y: " .. row .. " z: " .. brightness)
             end
         end
