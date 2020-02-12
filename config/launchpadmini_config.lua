@@ -70,6 +70,17 @@ local launchpad={
 
   -- somewhere to keep track of current displayed buffer in double buffer mode
   current_double_buffer = 0,
+  
+  all_led_sysex = function(self, color)
+      local set_all_led_rgb = '0xB0' -- magic number for "set ALL leds"
+      
+      --return self.do_sysex(set_all_led_rgb, r, g, b)
+      return tab.split('0xB0, 0x00, 0x00', ', ')
+  end,
+  
+  led_sysex = function(self, led, color)
+    return color
+  end,
 
   display_double_buffer_sysex = function(self)
     if (self.current_display_buffer == 0) then
