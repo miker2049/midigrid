@@ -3,43 +3,20 @@
      the '*_quad_button' buttons as defined in the relevant config file.
 ]]
 
--- if there's no *monome* grid attached, norns returns a valid but unpopulated grid table
--- so must we
-local midigrid = {
-    midi_id = nil,
-    device = nil,
-    rows = 0,
-    cols = 0,
-    name = "none"
-}
-
+local midigrid = include('midigrid/lib/base')
 
 brightness_handler = function(val) return 0 end
 
-
 function midigrid.init()
-    local supported_devices = {
-        apcmini = "apcmini",
-        launchpadmk2 = "launchpad mk2",
-        launchpadpro = "launchpad pro 2",
-        launchpad = "launchpad",
-        launchpadmini = "launchpad mini"
-    }
-    local config_name = "none"
-    config = nil
-    for _, dev in pairs(midi.devices) do
-        local name = string.lower(dev.name)
-        for device, device_name in pairs(supported_devices) do
-            if name == device_name then
-                config_name = "midigrid/config/" .. device .. "_config"
-            end
-        end
-    end
-    if config_name == "none" then
-        print("No supported device found")
+   local midi_device = midigrid._find_midigrid_devices() or 'none'
+    
+    if midi_device == 'none' then
+        print('No supported device found')
         return midigrid
     end
-    config = include(config_name)
+
+    config = include('midigrid/config/' .. midi_device .. '_config')
+    
     grid_notes = config.grid_notes
     brightness_handler = config.brightness_handler
     device_name = config.device_name
@@ -101,32 +78,6 @@ function midigrid.init()
     _local_midi_dev = midi.devices[midigrid.midi_id]
 end
 
-
-function midigrid.find_midi_device_id()
-    local found_id = nil
-    for _, dev in pairs(midi.devices) do
-        local name = string.lower(dev.name)
-        if midigrid.name_matches(name) then
-            found_id = dev.id
-        end
-    end
-    return found_id
-end
-
-
-function _light_quad_button(which_quad)
-  -- regardless of which quad button we wish to light, we still have to turn
-  --     off all the others
-    for quad, _ in ipairs(quad_btns) do
-        if quad == which_quad then
-            _local_midi_dev:note_on(quad_btns[quad], 1)
-        else
-            _local_midi_dev:note_on(quad_btns[quad], 0)
-        end
-    end
-end
-
-
 function midigrid.connect(dummy_id)
     if config == nil then
         return midigrid
@@ -140,42 +91,6 @@ function midigrid.connect(dummy_id)
     _light_quad_button(1)
     return midigrid
 end
-
-
-function midigrid.set_key_handler(key_handler)
-    midigrid.set_midi_handler()
-    midigrid.key = key_handler
-end
-
-
-function midigrid.setup_connect_handling()
-    og_dev_add = midi.add
-    og_dev_remove = midi.remove
-    midi.add = midigrid.handle_dev_add
-    midi.remove = midigrid.handle_dev_remove
-end
-
-
-function midigrid.name_matches(name)
-    return (name == device_name)
-end
-
-
-function midigrid.handle_dev_add(id, name, dev)
-    og_dev_add(id, name, dev)
-    midigrid.update_devices()
-    if (midigrid.name_matches(name)) and (id ~= midigrid.midi_id) then
-        midigrid.midi_id = id
-        midigrid.set_midi_handler()
-    end
-end
-
-
-function midigrid.handle_dev_remove(id)
-    og_dev_remove(id)
-    midigrid.update_devices()
-end
-
 
 -- this already expects it to have Midi_id
 function midigrid.set_midi_handler()
@@ -194,26 +109,6 @@ function midigrid.set_midi_handler()
         midigrid.midi_id = nil
     end
 end
-
-
-function midigrid.cleanup()
-    midigrid.key = nil
-end
-
-
-function midigrid.update_devices()
-    midi.update_devices()
-    local new_id = midigrid.find_midi_device_id()
-
-    -- Only set id/handler when helpful
-    if (new_id ~= nil) and (midigrid.midi_id ~= new_id) then
-        midigrid.midi_id = new_id
-        midigrid.set_midi_handler()
-        return
-    end
-    return (midigrid.midi_id ~= nil)
-end
-
 
 function _brightness_to_buffer(note, vel, result)
     -- `result` is the table returned by whichever led fn we called as an arg to
@@ -255,7 +150,6 @@ function midigrid:all(brightness)
         end
     end
 end
-
 
 -- ...then we update the led buf at our leisure...
 function midigrid:led(col, row, brightness)
