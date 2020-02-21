@@ -14,7 +14,8 @@ local midigrid = {
     rows = 0,
     cols = 0,
     name = "none",
-    vports={}
+    vports={},
+    vgrid={}
 }
 
 function midigrid._find_midigrid_devices()

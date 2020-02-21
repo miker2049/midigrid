@@ -210,25 +210,12 @@ end
 function midigrid.handle_key_midi(event)
     -- type="note_on", note, vel, ch
     -- type="cc", cc, val, ch
-    -- so, tldr, `event[2]` is what we want
-    local note = event[2]
     local midi_msg = midi.to_msg(event)
-
-    -- first, intercept the quad buttons...
-    if tab.contains(quad_btns, note) then
-        for local_quad, button in ipairs(quad_btns) do
-            if note == button
-                    and quad ~= local_quad then
-                -- ...and change the quad, if needed
-                _handle_quad(midi_msg, local_quad)
-            end
-        end
 
     -- "musical" notes, i.e. the main 8x8 grid, are in this range, BUT these values are
     -- device-dependent. Reject cc "notes" here.
-    elseif (note >= 0 and note <= 88)
-            and (midi_msg.type == 'note_on' or midi_msg.type == 'note_off') then
-        local coords = note_coords[quad][note]
+    if (midi_msg.type == 'note_on' or midi_msg.type == 'note_off') then
+        local coords = note_coords[quad][midi_msg.note]
         local state = 0
         if coords then
             local x, y
@@ -240,9 +227,26 @@ function midigrid.handle_key_midi(event)
                 midigrid.key(x, y, state)
             end
         else
-            print('missing coords!')
+            print('sending event to special btn handler')
+            midigrid.handle_special_buttons(midi_msg)
         end
     end
+end
+
+function midigrid.handle_special_buttons(midi_msg)
+  -- first, intercept the quad buttons...
+    if tab.contains(quad_btns, midi_msg.note) then
+        for local_quad, button in ipairs(quad_btns) do
+            if midi_msg.note == button
+                    and quad ~= local_quad then
+                -- ...and change the quad, if needed
+                _handle_quad(midi_msg, local_quad)
+            end
+        end
+    else
+        print('missing coords or unhandled midi event!')
+    end
+
 end
 
 midigrid.init()
