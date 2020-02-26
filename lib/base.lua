@@ -9,27 +9,29 @@ local supported_devices = {
 -- if there's no *monome* grid attached, norns returns a valid but unpopulated grid table
 -- so must we
 local midigrid = {
+    core_grid = grid, --Preserve the core norns grid
     midi_id = nil,
     device = nil,
     rows = 0,
     cols = 0,
     name = "none",
     vports={},
-    vgrid={}
+    vgrid=nil
 }
 
 function midigrid._find_midigrid_devices()
-  local midi_device = nil
+  local midi_devices = {}
+  --TODO should we use midi.vports?
   for _, dev in pairs(midi.devices) do
     local name = string.lower(dev.name)
     for device, device_name in pairs(supported_devices) do
         if name == device_name then
-            midi_device = device
+            table.insert(midi_devices, device)
         end
     end
   end
 
-  return midi_device
+  return midi_devices
 end
 
 function midigrid.find_midi_device_id()
@@ -44,6 +46,11 @@ function midigrid.find_midi_device_id()
 end
 
 function midigrid.connect(dummy_id)
+    if midigrid.vgrid == nil then
+      -- User is calling connect without calling init, default to 64 button layout
+      midigrid.vgrid = vgrid.init('64')  
+    end
+    
     if config == nil then
         return midigrid
     end
@@ -52,8 +59,6 @@ function midigrid.connect(dummy_id)
     midigrid:all(0)
     midigrid:refresh()
 
-    -- init on quad 1
-    _light_quad_button(1)
     return midigrid
 end
 

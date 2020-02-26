@@ -15,7 +15,30 @@ local Vgrid = {
   width=8,
   height=8,
   quads = {},
+  devices = {},
 }
+
+function Vgrid:attach_devices(devices)
+  for for _, dev in pairs(devices) do
+    self:attach_device(dev)
+  end
+end
+
+function Vgrid:attach_device(dev)
+  -- Assign to quads based on number of currently attached devices 
+  -- e.g. dev1 = quad1, dev2 = quad2, ...
+  dev.current_quad = ((#self.devices-1) % #self.quads)+1
+  table.insert(self.devices,dev)
+  -- Set call back for real device events to become vertual grid events 
+  dev._key_callback = self._handle_grid_key
+end
+
+function Vgrid:_handle_grid_key(device,dev_x,dev_y,state)
+  -- Send device event to quad
+  --quads[device.current_quad]
+  self.key(x,y,state)
+end
+
 
 function Vgrid:find_quad(x,y)
   local qid = 1
@@ -33,7 +56,7 @@ function Vgrid:set(x,y,z)
 end
 
 function Vgrid:set_all(z)
-  for qid = 1, #Vgrid.quads
+  for qid = 1, #Vgrid.quads do
     q = self.quads[qid]
     for x = 1,q.width do
       for y = 1,q.height do
@@ -82,10 +105,11 @@ function Vgrid.new_quad(id,width,height,offset_x,offset_y)
   
   function q:updates_with(device,callback)
     if #self.updates_x > 0 then
-    for u = 1,#updates do
-      local x = self.updates_x[u]
-      local y = self.updates_y[u]
-      callback(device,x,y,self.buffer[x][y])
+      for u = 1,#updates do
+        local x = self.updates_x[u]
+        local y = self.updates_y[u]
+        callback(device,x,y,self.buffer[x][y])
+      end
     end
   end
 

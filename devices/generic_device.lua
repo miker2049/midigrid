@@ -14,10 +14,11 @@ local device={
   width=8,
   height=8,
   
-  midi_id = 1
+  midi_id = 1,
   
   -- This MUST contain 15 values that corospond to brightness. these can be strings or tables if you midi send handler requires (e.g. RGB)
-  brightness_map = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15}
+  brightness_map = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15},
+  
   --these are the keys in the apc to the sides of our apc, not necessary for strict grid emulation but handy!
   --they are up to down, so 82 is the auxkey to row 1
   auxcol = {82,83,84,85,86,87,88,89},
@@ -32,7 +33,7 @@ local device={
   
   force_full_refresh = false,
 
-  device_name='generic'
+  device_name = 'generic'
 }
 
 --function expects grid brightness from 0-15 and converts in so your midi controller can understand, 
@@ -46,8 +47,16 @@ function device:update_aux()
   --TODO: Aux Rows / Cols
 end
 
-function device:_update_led(x,y,z)
-  local vel = self.brightness_map[val+1]
+function device._reset(self)
+  if self.reset_device_msg then
+    midi.devices[self.midi_id]:send(self.reset_device_msg)
+  else
+    --TODO: Reset all leds on device
+  end
+end
+
+function device._update_led(self,x,y,z)
+  local vel = self.brightness_map[z+1]
   local note = self.grid_notes[y][x]
   local midi_msg = {0x90,note,vel}
   midi.devices[self.midi_id]:send(midi_msg)
@@ -55,7 +64,7 @@ end
 
 function device:refresh(vgrid)
   local quad = vgrid.quads[self.current_quad]
-  if self.force_full_refresh
+  if self.force_full_refresh then
     quad.each_with(self,self._update_led)
   else
     quad.updates_with(self,self._update_led)
