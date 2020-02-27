@@ -25,12 +25,21 @@ function Vgrid:attach_devices(devices)
 end
 
 function Vgrid:attach_device(dev)
-  -- Assign to quads based on number of currently attached devices 
+
+  -- Assign to quads based on number of currently attached devices
   -- e.g. dev1 = quad1, dev2 = quad2, ...
   dev.current_quad = ((#self.devices-1) % #self.quads)+1
   table.insert(self.devices,dev)
-  -- Set call back for real device events to become vertual grid events 
+
+  -- Set call back for real device events to become vertual grid events
   dev._key_callback = self._handle_grid_key
+
+  -- Call device init if set
+  if dev._init then
+    dev:_init()
+  end
+  -- Reset the device
+  dev:_reset()
 end
 
 function Vgrid:_handle_grid_key(device,dev_x,dev_y,state)
@@ -91,10 +100,10 @@ function Vgrid.new_quad(id,width,height,offset_x,offset_y)
   function q:_relative_set(rx,ry,qz)
     local qx = rx - self.offset_x
     local qy = ry - self.offset_y
-    
+
     self:_set(qx,qy,qz)
   end
-  
+
   function q:each_with(device,callback)
     for x = 1,self.width do
       for y = 1,self.height do
@@ -102,7 +111,7 @@ function Vgrid.new_quad(id,width,height,offset_x,offset_y)
       end
     end
   end
-  
+
   function q:updates_with(device,callback)
     if #self.updates_x > 0 then
       for u = 1,#updates do
