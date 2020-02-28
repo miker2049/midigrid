@@ -12,8 +12,8 @@
 ]]
 
 --local midigrid = include('midigrid/lib/base')
-local supported_devices = include('midigrid/lib/supported_devices')
 local vgrid = include('midigrid/lib/vgrid')
+local supported_devices = include('midigrid/lib/supported_devices')
 
 local midigrid = {
   vgrid = vgrid,
@@ -24,28 +24,38 @@ local midigrid = {
 }
 
 function midigrid.init(layout)
-  vgrid.init(layout)
+  midigrid.vgrid.init(layout)
 end
 
 function midigrid._find_midigrid_devices()
   local found_device = nil
   local mounted_devices = {}
 
+  print("core midi devices")
+  tab.print(midi.devices)
+
   for _, dev in pairs(midi.devices) do
     found_device = supported_devices.find_midi_device_type(dev)
-    if found_device then mounted_devices[found_device.id] = found_device end
+    print("Dev" .. dev.id .." FD "..found_device)
+
+    if found_device then mounted_devices[dev.id] = found_device end
   end
+
+  print("mounted_devices")
+  tab.print(mounted_devices)
 
   return mounted_devices
 end
 
-function midi_grid._load_midi_devices(midi_devices)
+function midigrid._load_midi_devices(midi_devs)
   local connected_devices = {}
-  for midi_id,midi_device_type in pairs(midi_devices) do
+  for midi_id,midi_device_type in pairs(midi_devs) do
+    print("Loading midi device type:" .. midi_device_type .. " on midi port " .. midi_id)
     local device = include('midigrid/devices/'..midi_device_type)
-    device.midi_id = id
-    connected_devices[id] = device
+    device.midi_id = midi_id
+    connected_devices[midi_id] = device
   end
+  
   return connected_devices
 end
 
@@ -64,8 +74,12 @@ function midigrid.connect(dummy_id)
        return midigrid.core_grid.connect()
   end
 
-  local connected_devices = midi_grid._load_midi_devices(midi_devices)
-  vgrid.attach_devices(connected_devices)
+  local connected_devices = midigrid._load_midi_devices(midi_devices)
+  
+  print("Connected devices:")
+  tab.print(connected_devices)
+  
+  vgrid:attach_devices(connected_devices)
 
   midigrid.setup_connect_handling()
 
@@ -92,6 +106,24 @@ end
 function midigrid.update_devices()
     --WTF does this do?
     midi.update_devices()
+end
+
+-- Grid emulation functions
+
+function midigrid:rotate()
+  --TODO Is there a sane way to implement this with multi device?
+end
+
+function midigrid:all(z)
+  return self.vgrid:set_all(z)
+end
+
+function midigrid:led(x,y,z)
+  return self.vgrid:set(x,y,z)
+end
+
+function midigrid:refresh()
+  return self.vgrid:refresh()
 end
 
 return midigrid

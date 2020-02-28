@@ -1,12 +1,11 @@
 local supported_devices = {
   midi_devices = {
-    {  midi_base_name: 'launchpad',        device_type:'launchpad' },
-    {  midi_base_name: 'launchpad mini',   device_type:'launchpad' },
-    {  midi_base_name: 'launchpad mini 2', device_type:'launchpad' }, --TODO remove once proper multi device implemented below
--- Currently implemnted
-    {  midi_base_name: 'apcmini',          device_type:'apcmini' },   --TODO implement!
-    {  midi_base_name: 'launchpad mk2'      device_type:'launchpadmk2' },--TODO implement!
-    {  midi_base_name: 'launchpad pro 2'      device_type:'launchpadpro2' },--TODO implement!
+    {  midi_base_name= 'launchpad',        device_type='launchpad'     },
+    {  midi_base_name= 'launchpad mini',   device_type='launchpad'     },
+    {  midi_base_name= 'launchpad mini 2', device_type='launchpad'     }, 
+    {  midi_base_name= 'apcmini',          device_type='apcmini'       }, 
+    {  midi_base_name= 'launchpad mk2',    device_type='launchpadmk2'  },
+    {  midi_base_name= 'launchpad pro 2',  device_type='launchpadpro2' },
 --[[ known devices to be implemented, help required!
     {  midi_base_name: 'launchpad mk3'      device_type:'launchpadmk3' },
     {  midi_base_name: 'livid block'      device_type:'livid_block' },
@@ -15,6 +14,7 @@ local supported_devices = {
 }
 
 function supported_devices.find_midi_device_type(midi_device)
+  print('finding device: ' .. midi_device.id .. " with name " .. midi_device.name)
   local sysex_ident_resp = nil
   -- TODO get response to sysex indentify call
   local matched_device_type = nil
@@ -28,3 +28,5 @@ function supported_devices.find_midi_device_type(midi_device)
   end
   return nil
 end
+
+return supported_devices

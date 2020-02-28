@@ -65,10 +65,12 @@ end
 function device:refresh(vgrid)
   local quad = vgrid.quads[self.current_quad]
   if self.force_full_refresh then
-    quad.each_with(self,self._update_led)
+    quad.each_with(quad,self,self._update_led)
   else
-    quad.updates_with(self,self._update_led)
+    quad.updates_with(quad,self,self._update_led)
   end
+  --TODO Quads can be displayed on multiple devices 
+  quad:reset_updates()
   --TODO: update "Mirrored" rows / cols
   self:update_aux()
 end

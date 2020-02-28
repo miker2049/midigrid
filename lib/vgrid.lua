@@ -19,7 +19,8 @@ local Vgrid = {
 }
 
 function Vgrid:attach_devices(devices)
-  for for _, dev in pairs(devices) do
+  tab.print(devices)
+  for _, dev in pairs(devices) do
     self:attach_device(dev)
   end
 end
@@ -75,6 +76,16 @@ function Vgrid:set_all(z)
   end
 end
 
+function Vgrid:refresh(device_id)
+  if device_id then
+    self.devices[device_id]:refresh(self)
+  else
+    for _,device in pairs(self.devices) do
+      device:refresh(self)
+    end
+  end
+end
+
 function Vgrid.new_quad(id,width,height,offset_x,offset_y)
   q = {
     id=id,
@@ -89,12 +100,18 @@ function Vgrid.new_quad(id,width,height,offset_x,offset_y)
     force_full_redraw = false
   }
   function q:_set(qx,qy,qz)
-    if (self.buffer[buffer_x][buffer_y] ~= qz) then
+    if (self.buffer[qx][qy] ~= qz) then
       self.update_count = self.update_count + 1
       table.insert(self.updates_x,qx)
       table.insert(self.updates_y,qy)
       self.buffer[qx][qy] = qz
     end
+  end
+  
+  function q:reset_updates()
+    self.update_count = 0
+    self.updates_x = {}
+    self.updates_y = {}
   end
 
   function q:_relative_set(rx,ry,qz)
@@ -113,8 +130,8 @@ function Vgrid.new_quad(id,width,height,offset_x,offset_y)
   end
 
   function q:updates_with(device,callback)
-    if #self.updates_x > 0 then
-      for u = 1,#updates do
+    if self.update_count > 0 then
+      for u = 1,self.update_count do
         local x = self.updates_x[u]
         local y = self.updates_y[u]
         callback(device,x,y,self.buffer[x][y])
@@ -129,6 +146,7 @@ end
 
 function Vgrid.init(layout)
   layout = layout or '128'
+  print("vgrid init with layout: "..layout)
   if layout == '128' or '256' then
     Vgrid.locate_in_layout = function(self,x,y)
       if (x > Vgrid.width or y > Vgrid.height) then return nil end
