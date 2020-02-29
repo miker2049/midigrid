@@ -15,6 +15,7 @@ local device={
   height=8,
   
   midi_id = 1,
+  refresh_counter = 0,
   
   -- This MUST contain 15 values that corospond to brightness. these can be strings or tables if you midi send handler requires (e.g. RGB)
   brightness_map = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15},
@@ -64,10 +65,16 @@ end
 
 function device:refresh(vgrid)
   local quad = vgrid.quads[self.current_quad]
+  if self.refresh_counter > 9 then
+    self.force_full_refresh = true
+    self.refresh_counter = 0
+  end
   if self.force_full_refresh then
     quad.each_with(quad,self,self._update_led)
+    self.force_full_refresh = false
   else
     quad.updates_with(quad,self,self._update_led)
+    self.refresh_counter=self.refresh_counter+1
   end
   --TODO Quads can be displayed on multiple devices 
   quad:reset_updates()
