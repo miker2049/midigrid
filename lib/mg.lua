@@ -23,8 +23,8 @@ local midigrid = {
 
 }
 
-function midigrid.init(layout)
-  midigrid.vgrid.init(layout)
+function midigrid:init(layout)
+  self.vgrid.init(layout)
 end
 
 function midigrid._find_midigrid_devices()
@@ -61,6 +61,7 @@ end
 
 function midigrid.connect(dummy_id)
   if midigrid.vgrid == nil then
+    print("Default 64 layout init")
     -- User is calling connect without calling init, default to 64 button layout
     midigrid.vgrid = vgrid.init('64')
   end

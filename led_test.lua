@@ -1,6 +1,8 @@
 local grid = include "midigrid/lib/mg"
-grid.init('128')
+grid:init('128')
 local g = grid.connect()
+
+tab.print(g.vgrid)
 
 local grid_metro = metro.init()
 
@@ -40,6 +42,7 @@ function init()
   print('init')
   g:led(1,1,15)
   g:refresh()
+  g:led(9,1,15)
   grid_metro:start((0.06))
   g:all(0)
 end

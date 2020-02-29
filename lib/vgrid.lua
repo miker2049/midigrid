@@ -57,7 +57,7 @@ function Vgrid:find_quad(x,y)
 end
 
 function Vgrid:set(x,y,z)
-  local q = Vgrid:find_quad(x,y)
+  local q = self:find_quad(x,y)
   if q then
     q:_relative_set(x,y,z)
   else
@@ -150,17 +150,19 @@ function Vgrid.init(layout)
   if layout == '128' or '256' then
     Vgrid.locate_in_layout = function(self,x,y)
       if (x > Vgrid.width or y > Vgrid.height) then return nil end
-      if (y <= self.height) then
-        if (x <= self.width) then return 1 else return 2 end
+      if (y <= self.quads[1].height) then
+        if (x <= self.quads[1].width) then return 1 else return 2 end
       end
-      if (x <= self.width) then return 3 else return 4 end
+      if (x <= self.quads[1].width) then return 3 else return 4 end
     end
 
     Vgrid.new_quad(1,8,8,0,0)
     Vgrid.new_quad(2,8,8,8,0)
+    Vgrid.width = 16
     if layout == '256' then
       Vgrid.new_quad(3,8,8,0,8)
       Vgrid.new_quad(4,8,8,8,8)
+      Vgrid.height = 16
     end
 
   elseif layout == 'cheat_codes' then
