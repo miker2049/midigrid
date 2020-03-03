@@ -16,9 +16,11 @@ local Vgrid = {
   height=8,
   quads = {},
   devices = {},
+  key=nil
 }
 
 function Vgrid:attach_devices(devices)
+  print('attaching devices:')
   tab.print(devices)
   for _, dev in pairs(devices) do
     self:attach_device(dev)
@@ -29,11 +31,18 @@ function Vgrid:attach_device(dev)
 
   -- Assign to quads based on number of currently attached devices
   -- e.g. dev1 = quad1, dev2 = quad2, ...
-  dev.current_quad = ((#self.devices-1) % #self.quads)+1
+  dev.current_quad = ((tab.count(self.devices)-1) % tab.count(self.quads))+1
   table.insert(self.devices,dev)
+  
+  -- Create reverse lookup tables for device
+  dev:create_rev_lookups()
 
-  -- Set call back for real device events to become vertual grid events
-  dev._key_callback = self._handle_grid_key
+  -- Set call back for real device events to become virtual grid events
+  midi.devices[dev.midi_id].event = function(e) dev.event(dev,self,e) end
+  
+  dev._key_callback = function(dev_quad,dev_x,dev_y,state) 
+    self:_handle_grid_key(dev_quad,dev_x,dev_y,state) 
+  end
 
   -- Call device init if set
   if dev._init then
@@ -43,12 +52,11 @@ function Vgrid:attach_device(dev)
   dev:_reset()
 end
 
-function Vgrid:_handle_grid_key(device,dev_x,dev_y,state)
+function Vgrid:_handle_grid_key(quad_id,qx,qy,state)
   -- Send device event to quad
-  --quads[device.current_quad]
-  self.key(x,y,state)
+  --print('q:'..quad_id..' x:'.. qx ..' y:'..qy..' s:'..state)
+  self.quads[quad_id]:key(qx,qy,state,self.key)
 end
-
 
 function Vgrid:find_quad(x,y)
   local qid = 1
@@ -137,6 +145,12 @@ function Vgrid.new_quad(id,width,height,offset_x,offset_y)
         callback(device,x,y,self.buffer[x][y])
       end
     end
+  end
+  
+  function q:key(qx,qy,state,callback)
+    local rx = qx + self.offset_x
+    local ry = qy + self.offset_y
+    callback(rx,ry,state)
   end
 
   table.insert(Vgrid.quads,q)

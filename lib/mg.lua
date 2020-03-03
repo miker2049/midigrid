@@ -20,11 +20,22 @@ local midigrid = {
   core_grid = grid,
   core_midi_add = nil,
   core_midi_remove = nil,
-
+  cols = 8,
+  rows = 8,
+  key = nil,
 }
+
+function vgrid.key(x,y,z)
+  if midigrid.key then
+    midigrid.key(x,y,z)
+  end
+end
+    
 
 function midigrid:init(layout)
   self.vgrid.init(layout)
+  self.cols = self.vgrid.width
+  self.rows = self.vgrid.height
 end
 
 function midigrid._find_midigrid_devices()
@@ -69,10 +80,12 @@ function midigrid.connect(dummy_id)
   local midi_devices = midigrid._find_midigrid_devices()
 
   -- If no midi devices found
-  if #midi_devices == 0 then
-       print('No supported device found')
-       -- Make midigrid transparent if no devices found and return the core grid connect()
-       return midigrid.core_grid.connect()
+  if next(midi_devices) == nil then
+    print('No supported device found' .. #midi_devices)
+     
+    tab.print(midi_devices)
+    -- Make midigrid transparent if no devices found and return the core grid connect()
+    return midigrid.core_grid.connect()
   end
 
   local connected_devices = midigrid._load_midi_devices(midi_devices)
@@ -111,7 +124,7 @@ end
 
 -- Grid emulation functions
 
-function midigrid:rotate()
+function midigrid:rotation(dir)
   --TODO Is there a sane way to implement this with multi device?
 end
 
@@ -126,5 +139,9 @@ end
 function midigrid:refresh()
   return self.vgrid:refresh()
 end
+
+midigrid.name = 'Midi Grid'
+midigrid.vports = { }
+midigrid.vports[1] = midigrid 
 
 return midigrid

@@ -11,6 +11,7 @@ local device={
     {8,9,10,11,12,13,14,15},
     {0,1,2,3,4,5,6,7}
   },
+  note_to_grid_lookup = {}, -- Intentionally left empty 
   width=8,
   height=8,
   
@@ -63,6 +64,19 @@ function device._update_led(self,x,y,z)
   midi.devices[self.midi_id]:send(midi_msg)
 end
 
+function device.event(self,vgrid,midi_event)
+  --TODO seperate CC events from Note events
+  local key = self.note_to_grid_lookup[midi_event[2]]
+  if key then
+    local key_state = (midi_event[3]>0) and 1 or 0
+    self._key_callback(self.current_quad,key['x'],key['y'],key_state)
+  else
+    print("Unhandled midi note: " .. midi_event[2])
+  end
+end
+  
+device._key_callback = function() print('no vgrid event handle callback attached!') end
+
 function device:refresh(vgrid)
   local quad = vgrid.quads[self.current_quad]
   if self.refresh_counter > 9 then
@@ -80,6 +94,14 @@ function device:refresh(vgrid)
   quad:reset_updates()
   --TODO: update "Mirrored" rows / cols
   self:update_aux()
+end
+
+function device:create_rev_lookups()
+  for col = 1,self.height do
+    for row = 1,self.width do
+      self.note_to_grid_lookup[self.grid_notes[col][row]] = {x=row,y=col}
+    end
+  end
 end
 
 return device
