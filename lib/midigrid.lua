@@ -11,160 +11,137 @@
      does `set_midi_handler()`
 ]]
 
-local midigrid = include('midigrid/lib/base')
+--local midigrid = include('midigrid/lib/base')
+local vgrid = include('midigrid/lib/vgrid')
+local supported_devices = include('midigrid/lib/supported_devices')
 
-brightness_handler = function(val) return 0 end
+local midigrid = {
+  vgrid = vgrid,
+  core_grid = grid,
+  core_midi_add = nil,
+  core_midi_remove = nil,
+  cols = 8,
+  rows = 8,
+  key = nil,
+}
 
-
-function midigrid.init()
-    local midi_device = midigrid._find_midigrid_devices() or 'none'
+function vgrid.key(x,y,z)
+  if midigrid.key then
+    midigrid.key(x,y,z)
+  end
+end
     
-    if midi_device == 'none' then
-        print('No supported device found')
-        return midigrid
-    end
 
-    config = include('midigrid/config/' .. midi_device .. '_config')
-    
-    grid_notes = config.grid_notes
-    brightness_handler = config.brightness_handler
-    
-    device_name = config.device_name
-    name = config.device_name
-    caps = config.caps
-    
-    og_dev_add = nil
-    og_dev_remove = nil
-
-    -- defined so that our table's indices correspond to the quad numbers we've decided on:
-    --     1|2
-    --     ---
-    --     3|4
-    quad_btns = {
-        config.upper_left_quad_button,
-        config.upper_right_quad_button,
-        config.lower_left_quad_button,
-        config.lower_right_quad_button
-    }
-
-    -- adding midi device call backs---
-    midigrid.led_buf = {}
-    midigrid.rows = #grid_notes[1]
-    midigrid.cols = #grid_notes
-
-    -- here, using the grid from the config file, we generate the table to help us go the other
-    -- way around so, if you press a midi note and you wanna know what it is, this will have an
-    -- index with our coordinates
-    note_coords = {}
-    for row, notes in ipairs(grid_notes) do
-        for col, note in ipairs(notes) do
-            note_coords[note] = {col, row}
-        end
-    end
-
-    -- setting up connection and connection callbacks before returning
-    midigrid.setup_connect_handling()
-    midigrid.update_devices()
-    _local_midi_dev = midi.devices[midigrid.midi_id]
+function midigrid:init(layout)
+  self.vgrid.init(layout)
+  self.cols = self.vgrid.width
+  self.rows = self.vgrid.height
 end
 
-function _brightness_to_buffer(note, vel, result)
-    -- `result` is the table returned by whichever led fn we called as an arg to
-    --     *this* fn
-    if caps["sysex"] and caps["rgb"] then
-        for _, bytes in ipairs(result) do
-            table.insert(midigrid.led_buf, bytes)
-        end
-    else
-        table.insert(midigrid.led_buf, 0x90)
-        table.insert(midigrid.led_buf, note)
-        table.insert(midigrid.led_buf, vel)
-    end
+function midigrid._find_midigrid_devices()
+  local found_device = nil
+  local mounted_devices = {}
+
+  print("core midi devices")
+  tab.print(midi.devices)
+
+  for _, dev in pairs(midi.devices) do
+    found_device = supported_devices.find_midi_device_type(dev)
+    print("Dev" .. dev.id .." FD "..found_device)
+
+    if found_device then mounted_devices[dev.id] = found_device end
+  end
+
+  print("mounted_devices")
+  tab.print(mounted_devices)
+
+  return mounted_devices
 end
 
--- led handling. *generally speaking*; first we clear the led buffer...
-function midigrid:all(brightness)
-    local vel = brightness_handler(brightness)
-    local note = nil
-    if midigrid.device then
-        midigrid.led_buf = {}
-        for row = 1, midigrid.rows do
-            for col = 1, midigrid.cols do
-                note = grid_notes[row][col]
-                -- the result of the fn call becomes the arg to `_brightness_to_buffer`
-                _brightness_to_buffer(note, vel, config:all_led_sysex(vel))
-            end
-        end
-    end
+function midigrid._load_midi_devices(midi_devs)
+  local connected_devices = {}
+  for midi_id,midi_device_type in pairs(midi_devs) do
+    print("Loading midi device type:" .. midi_device_type .. " on midi port " .. midi_id)
+    local device = include('midigrid/lib/devices/'..midi_device_type)
+    device.midi_id = midi_id
+    connected_devices[midi_id] = device
+  end
+  
+  return connected_devices
 end
 
+function midigrid.connect(dummy_id)
+  if midigrid.vgrid == nil then
+    print("Default 64 layout init")
+    -- User is calling connect without calling init, default to 64 button layout
+    midigrid.vgrid = vgrid.init('64')
+  end
 
--- ...then we update the led buf at our leisure...
-function midigrid:led(col, row, brightness)
-    if (col >= 1 and row >= 1) and (col <= midigrid.cols and row <= midigrid.rows) then
-        local vel = brightness_handler(brightness)
-        local note = nil
-        if midigrid.device then
-            note = grid_notes[row][col]
-            if note then
-                -- the result of the fn call becomes the arg to `_brightness_to_buffer`
-                _brightness_to_buffer(note, vel, config:led_sysex(note, vel))
-            else
-                print('no note found! coordinates... x: ' .. col .. ' y: ' .. row .. ' z: ' .. brightness)
-            end
-        end
-    end
+  local midi_devices = midigrid._find_midigrid_devices()
+
+  -- If no midi devices found
+  if next(midi_devices) == nil then
+    print('No supported device found' .. #midi_devices)
+     
+    tab.print(midi_devices)
+    -- Make midigrid transparent if no devices found and return the core grid connect()
+    return midigrid.core_grid.connect()
+  end
+
+  local connected_devices = midigrid._load_midi_devices(midi_devices)
+  
+  print("Connected devices:")
+  tab.print(connected_devices)
+  
+  vgrid:attach_devices(connected_devices)
+
+  midigrid.setup_connect_handling()
+
+  return midigrid
 end
 
+function midigrid.setup_connect_handling()
+    midigrid.core_midi_add = midi.add
+    midigrid.core_midi_remove = midi.remove
+    midi.add = midigrid._handle_dev_add
+    midi.remove = midigrid._handle_dev_remove
+end
 
--- ...then we send the whole buf at once
+function midigrid._handle_dev_add(id, name, dev)
+    midigrid.core_midi_add(id, name, dev)
+    -- midigrid.update_devices()
+end
+
+function midigrid._handle_dev_remove(id)
+    midigrid.core_midi_remove(id)
+    -- midigrid.update_devices()
+end
+
+function midigrid.update_devices()
+    --WTF does this do?
+    midi.update_devices()
+end
+
+-- Grid emulation functions
+
+function midigrid:rotation(dir)
+  --TODO Is there a sane way to implement this with multi device?
+end
+
+function midigrid:all(z)
+  return self.vgrid:set_all(z)
+end
+
+function midigrid:led(x,y,z)
+  return self.vgrid:set(x,y,z)
+end
+
 function midigrid:refresh()
-    if midigrid.device then
-        if caps['lp_double_buffer'] then
-            _local_midi_dev:send(config:display_double_buffer_sysex())
-        end
-        _local_midi_dev:send(midigrid.led_buf)
-
-        -- ...and clear the buffer again.
-        midigrid.led_buf = {}
-    else
-        print('Error: no device found')
-    end
+  return self.vgrid:refresh()
 end
 
-
-function midigrid.handle_key_midi(event)
-    -- type="note_on", note, vel, ch
-    -- Note that midi msg already translates note on vel 0 to note off type
-    local midi_msg = midi.to_msg(event)
-    
-    -- Debug incomming midi messages
-    -- tab.print(midi_msg)
-
-    -- "musical" notes, i.e. the main 8x8 grid, are in this range, BUT these values are
-    -- device-dependent. Reject cc "notes" here.
-    if (midi_msg.type == 'note_on' or midi_msg.type == 'note_off') then
-        local coords = note_coords[midi_msg.note]
-        local state = 0
-        if coords then
-            local x, y
-            x, y = coords[1], coords[2]
-            if midi_msg.type == 'note_on' then
-                state = 1
-            end
-            if midigrid.key ~= nil then
-                midigrid.key(x, y, state)
-            end
-        else
-            print("missing coords!")
-        end
-        if (midi_msg.type == 'cc') then
-          print ('CC '.. midi_msg.note)
-        end
-    end
-end
-
-
-midigrid.init()
+midigrid.name = 'Midi Grid'
+midigrid.vports = { }
+midigrid.vports[1] = midigrid 
 
 return midigrid

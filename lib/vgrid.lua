@@ -28,7 +28,6 @@ function Vgrid:attach_devices(devices)
 end
 
 function Vgrid:attach_device(dev)
-
   -- Assign to quads based on number of currently attached devices
   -- e.g. dev1 = quad1, dev2 = quad2, ...
   dev.current_quad = ((tab.count(self.devices)-1) % tab.count(self.quads))+1

@@ -1,4 +1,4 @@
-local launchpad = include('midigrid/devices/generic_device')
+local launchpad = include('midigrid/lib/devices/generic_device')
 
 launchpad.grid_notes= {
   { 0, 1, 2, 3, 4, 5, 6, 7},

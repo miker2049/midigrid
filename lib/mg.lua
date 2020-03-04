@@ -62,7 +62,7 @@ function midigrid._load_midi_devices(midi_devs)
   local connected_devices = {}
   for midi_id,midi_device_type in pairs(midi_devs) do
     print("Loading midi device type:" .. midi_device_type .. " on midi port " .. midi_id)
-    local device = include('midigrid/devices/'..midi_device_type)
+    local device = include('midigrid/lib/devices/'..midi_device_type)
     device.midi_id = midi_id
     connected_devices[midi_id] = device
   end
