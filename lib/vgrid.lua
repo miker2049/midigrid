@@ -160,7 +160,11 @@ end
 function Vgrid.init(layout)
   layout = layout or '128'
   print("vgrid init with layout: "..layout)
-  if layout == '128' or '256' then
+  if layout == '64' then
+    Vgrid.locate_in_layout = function(self,x,y) return 1 end
+    Vgrid.new_quad(1,8,8,0,0)
+     
+  elseif layout == '128' or '256' then
     Vgrid.locate_in_layout = function(self,x,y)
       if (x > Vgrid.width or y > Vgrid.height) then return nil end
       if (y <= self.quads[1].height) then

@@ -1,5 +1,4 @@
 local grid = include "midigrid/lib/midigrid"
-grid:init('128')
 local g = grid.connect()
 
 local grid_metro = metro.init()
