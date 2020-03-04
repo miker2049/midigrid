@@ -25,17 +25,46 @@ local midigrid = {
   key = nil,
 }
 
+function midigrid:init(layout)
+  self.vgrid:init(layout)
+  self.cols = self.vgrid.width
+  self.rows = self.vgrid.height
+end
+
+function midigrid.connect(dummy_id)
+  if midigrid.vgrid.layout == nil then
+    print("Default 64 layout init")
+    -- User is calling connect without calling init, default to 64 button layout
+    midigrid:init('64')
+  end
+
+  local midi_devices = midigrid._find_midigrid_devices()
+
+  -- If no midi devices found
+  if next(midi_devices) == nil then
+    print('No supported device found' .. #midi_devices)
+     
+    tab.print(midi_devices)
+    -- Make midigrid transparent if no devices found and return the core grid connect()
+    return midigrid.core_grid.connect()
+  end
+
+  local connected_devices = midigrid._load_midi_devices(midi_devices)
+  
+  print("Connected devices:")
+  tab.print(connected_devices)
+  
+  vgrid:attach_devices(connected_devices)
+
+  midigrid.setup_connect_handling()
+
+  return midigrid
+end
+
 function vgrid.key(x,y,z)
   if midigrid.key then
     midigrid.key(x,y,z)
   end
-end
-    
-
-function midigrid:init(layout)
-  self.vgrid.init(layout)
-  self.cols = self.vgrid.width
-  self.rows = self.vgrid.height
 end
 
 function midigrid._find_midigrid_devices()
@@ -68,36 +97,6 @@ function midigrid._load_midi_devices(midi_devs)
   end
   
   return connected_devices
-end
-
-function midigrid.connect(dummy_id)
-  if midigrid.vgrid == nil then
-    print("Default 64 layout init")
-    -- User is calling connect without calling init, default to 64 button layout
-    midigrid.vgrid = vgrid.init('64')
-  end
-
-  local midi_devices = midigrid._find_midigrid_devices()
-
-  -- If no midi devices found
-  if next(midi_devices) == nil then
-    print('No supported device found' .. #midi_devices)
-     
-    tab.print(midi_devices)
-    -- Make midigrid transparent if no devices found and return the core grid connect()
-    return midigrid.core_grid.connect()
-  end
-
-  local connected_devices = midigrid._load_midi_devices(midi_devices)
-  
-  print("Connected devices:")
-  tab.print(connected_devices)
-  
-  vgrid:attach_devices(connected_devices)
-
-  midigrid.setup_connect_handling()
-
-  return midigrid
 end
 
 function midigrid.setup_connect_handling()

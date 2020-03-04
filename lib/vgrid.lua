@@ -12,12 +12,56 @@ function create_buffer(width,height)
 end
 
 local Vgrid = {
+  layout=nil,
   width=8,
   height=8,
   quads = {},
   devices = {},
   key=nil
 }
+
+function Vgrid:init(layout)
+  self.layout = layout or '128'
+  print("vgrid init with layout: ".. self.layout)
+  if self.layout == '64' then
+    self.locate_in_layout = function(self,x,y) return 1 end
+    self.new_quad(1,8,8,0,0)
+     
+  elseif self.layout == '128' or '256' then
+    self.locate_in_layout = function(self,x,y)
+      if (x > self.width or y > self.height) then return nil end
+      if (y <= self.quads[1].height) then
+        if (x <= self.quads[1].width) then return 1 else return 2 end
+      end
+      if (x <= self.quads[1].width) then return 3 else return 4 end
+    end
+
+    self.new_quad(1,8,8,0,0)
+    self.new_quad(2,8,8,8,0)
+    self.width = 16
+    if layout == '256' then
+      self.new_quad(3,8,8,0,8)
+      self.new_quad(4,8,8,8,8)
+      self.height = 16
+    end
+
+  elseif layout == 'cheat_codes' then
+    -- TODO check this is correct
+    self.new_quad(1,5,8,0,0)
+    self.new_quad(2,5,8,5,0)
+    self.new_quad(3,5,8,10,0)
+    self.new_quad(4,1,8,15,0) -- Aux row
+    -- TODO cheat codes layout still needs work to mirror "AUX" row
+    self.locate_in_layout = function(self,x,y)
+      if (x > self.width or y > self.height) then return nil end
+      -- 3 grids of 5x8 + 1x8 Aux
+      return (x//6)+1
+    end
+
+  else
+    print("ERROR: Unknown layout " .. layout)
+  end
+end
 
 function Vgrid:attach_devices(devices)
   print('attaching devices:')
@@ -155,49 +199,6 @@ function Vgrid.new_quad(id,width,height,offset_x,offset_y)
   table.insert(Vgrid.quads,q)
 
   return q
-end
-
-function Vgrid.init(layout)
-  layout = layout or '128'
-  print("vgrid init with layout: "..layout)
-  if layout == '64' then
-    Vgrid.locate_in_layout = function(self,x,y) return 1 end
-    Vgrid.new_quad(1,8,8,0,0)
-     
-  elseif layout == '128' or '256' then
-    Vgrid.locate_in_layout = function(self,x,y)
-      if (x > Vgrid.width or y > Vgrid.height) then return nil end
-      if (y <= self.quads[1].height) then
-        if (x <= self.quads[1].width) then return 1 else return 2 end
-      end
-      if (x <= self.quads[1].width) then return 3 else return 4 end
-    end
-
-    Vgrid.new_quad(1,8,8,0,0)
-    Vgrid.new_quad(2,8,8,8,0)
-    Vgrid.width = 16
-    if layout == '256' then
-      Vgrid.new_quad(3,8,8,0,8)
-      Vgrid.new_quad(4,8,8,8,8)
-      Vgrid.height = 16
-    end
-
-  elseif layout == 'cheat_codes' then
-    -- TODO check this is correct
-    Vgrid.new_quad(1,5,8,0,0)
-    Vgrid.new_quad(2,5,8,5,0)
-    Vgrid.new_quad(3,5,8,10,0)
-    Vgrid.new_quad(4,1,8,15,0) -- Aux row
-    -- TODO cheat codes layout still needs work to mirror "AUX" row
-    Vgrid.locate_in_layout = function(self,x,y)
-      if (x > Vgrid.width or y > Vgrid.height) then return nil end
-      -- 3 grids of 5x8 + 1x8 Aux
-      return (x//6)+1
-    end
-
-  else
-    print("ERROR: Unknown layout " .. layout)
-  end
 end
 
 return Vgrid

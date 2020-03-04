@@ -1,4 +1,5 @@
 local grid = include "midigrid/lib/midigrid"
+--grid:init('128')
 local g = grid.connect()
 
 local grid_metro = metro.init()
@@ -13,7 +14,7 @@ end
 grid_metro.event = function()
     --print("beat")
     local light_level = 0
-    for x = 1,16 do
+    for x = 1,g.cols do
       -- Two rows showing full LED scale
       for y = 1,2 do
         if x <= 8 then
@@ -37,8 +38,8 @@ end
 
 function init()
   print('init')
-  grid_metro:start((0.06))
   g:all(0)
+  g:refresh()
 end
   
 function redraw()
@@ -46,7 +47,15 @@ function redraw()
 end
 
 function key(n, z)
-
+  print('key'..n..z)
+  if n==2 and z==1 then
+    grid_metro:stop()
+    g:all(0)
+    g:refresh()
+  end
+  if n==3 and z==1 then
+    grid_metro:start(0.06)
+  end
 end
 
 function enc(n, d)
