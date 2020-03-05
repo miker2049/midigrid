@@ -8,8 +8,8 @@ local device={
     {32,33,34,35,36,37,38,39},
     {24,25,26,27,28,29,30,31},
     {16,17,18,19,20,21,22,23},
-    {8,9,10,11,12,13,14,15},
-    {0,1,2,3,4,5,6,7}
+    { 8, 9,10,11,12,13,14,15},
+    { 0, 1, 2, 3, 4, 5, 6, 7}
   },
   note_to_grid_lookup = {}, -- Intentionally left empty 
   width=8,
@@ -49,6 +49,11 @@ function device:update_aux()
   --TODO: Aux Rows / Cols
 end
 
+function device:change_quad(quad)
+    self.current_quad = quad
+    self.force_full_refresh = true
+end
+
 function device._reset(self)
   if self.reset_device_msg then
     midi.devices[self.midi_id]:send(self.reset_device_msg)
@@ -64,14 +69,32 @@ function device._update_led(self,x,y,z)
   midi.devices[self.midi_id]:send(midi_msg)
 end
 
-function device.event(self,vgrid,midi_event)
-  --TODO seperate CC events from Note events
-  local key = self.note_to_grid_lookup[midi_event[2]]
-  if key then
-    local key_state = (midi_event[3]>0) and 1 or 0
-    self._key_callback(self.current_quad,key['x'],key['y'],key_state)
-  else
-    print("Unhandled midi note: " .. midi_event[2])
+function device.event(self,vgrid,event)
+  -- type="note_on", note, vel, ch
+  -- Note that midi msg already translates note on vel 0 to note off type
+  local midi_msg = midi.to_msg(event)
+  
+  -- Debug incomming midi messages
+  -- tab.print(midi_msg)
+
+  -- "musical" notes, i.e. the main 8x8 grid, are in this range, BUT these values are
+  -- device-dependent. Reject cc "notes" here.
+  if (midi_msg.type == 'note_on' or midi_msg.type == 'note_off') then
+    local key = self.note_to_grid_lookup[midi_msg.note]
+    if key then
+      local key_state = (midi_msg.type == 'note_on') and 1 or 0
+      self._key_callback(self.current_quad,key['x'],key['y'],key_state)
+    else
+      print("Unhandled midi note: " .. midi_msg.note)
+    end
+  elseif (midi_msg.type == 'cc') then
+    
+    if (self.cc_handler) then 
+      self:cc_handler(vgrid,midi_msg) 
+    else
+      -- unhandled CC msg, please leave commented, devices with rotatry encoders or pots output a lot of CC messages.
+      --print('Unhandled CC '.. midi_msg.cc)
+    end
   end
 end
   
