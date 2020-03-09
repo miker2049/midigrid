@@ -26,6 +26,8 @@ local device={
   auxcol = {82,83,84,85,86,87,88,89},
   --left to right, 64 is aux key to column 1
   auxrow = {64,65,66,67,68,69,70,71},
+  
+  quad_leds = { notes = { 64,65,66,67 } },
 
   -- the currently displayed quad on the device
   current_quad = 1,
@@ -45,10 +47,6 @@ function device:brightness_handler(val)
   return self.brightness_map[val+1]
 end
 
-function device:update_aux()
-  --TODO: Aux Rows / Cols
-end
-
 function device:change_quad(quad)
     self.current_quad = quad
     self.force_full_refresh = true
@@ -66,7 +64,8 @@ function device._update_led(self,x,y,z)
   local vel = self.brightness_map[z+1]
   local note = self.grid_notes[y][x]
   local midi_msg = {0x90,note,vel}
-  midi.devices[self.midi_id]:send(midi_msg)
+  --TODO: do we accept a few error msg on failed unmount and check device status in :refresh
+  if midi.devices[self.midi_id] then midi.devices[self.midi_id]:send(midi_msg) end
 end
 
 function device.event(self,vgrid,event)
@@ -100,8 +99,7 @@ end
   
 device._key_callback = function() print('no vgrid event handle callback attached!') end
 
-function device:refresh(vgrid)
-  local quad = vgrid.quads[self.current_quad]
+function device:refresh(quad)
   if self.refresh_counter > 9 then
     self.force_full_refresh = true
     self.refresh_counter = 0
@@ -113,10 +111,36 @@ function device:refresh(vgrid)
     quad.updates_with(quad,self,self._update_led)
     self.refresh_counter=self.refresh_counter+1
   end
-  --TODO Quads can be displayed on multiple devices 
-  quad:reset_updates()
   --TODO: update "Mirrored" rows / cols
   self:update_aux()
+end
+
+function device:update_aux()
+  --TODO: Aux Rows / Cols
+  if self.quad_leds.notes then
+    for q = 1,4 do 
+      if self.current_quad == q then z = 16 else z = 1 end
+      local vel = self.brightness_map[z]
+      local note = self.quad_leds.notes[q]
+      local midi_msg = {0x90,note,vel}
+      if midi.devices[self.midi_id] then midi.devices[self.midi_id]:send(midi_msg) end
+    end
+  end
+  if self.quad_leds.CC then
+    for q = 1,4 do 
+      if self.current_quad == q then z = 16 else z = 1 end
+      local vel = self.brightness_map[z]
+      local cc = self.quad_leds.CC[q]
+      local midi_msg = {0xb0,cc,vel}
+      if midi.devices[self.midi_id] then midi.devices[self.midi_id]:send(midi_msg) end
+    end
+  end
+end
+
+function device:_send_cc(cc,z)
+  local vel = self.brightness_map[z]
+      local midi_msg = {0xb0,cc,vel}
+      if midi.devices[self.midi_id] then midi.devices[self.midi_id]:send(midi_msg) end
 end
 
 function device:create_rev_lookups()
