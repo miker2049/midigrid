@@ -48,11 +48,13 @@ function device:brightness_handler(val)
 end
 
 function device:change_quad(quad)
+    
     self.current_quad = quad
     self.force_full_refresh = true
 end
 
 function device._reset(self)
+  print("device._reset")
   if self.reset_device_msg then
     midi.devices[self.midi_id]:send(self.reset_device_msg)
   else
@@ -100,16 +102,18 @@ end
 device._key_callback = function() print('no vgrid event handle callback attached!') end
 
 function device:refresh(quad)
-  if self.refresh_counter > 9 then
-    self.force_full_refresh = true
-    self.refresh_counter = 0
-  end
-  if self.force_full_refresh then
-    quad.each_with(quad,self,self._update_led)
-    self.force_full_refresh = false
-  else
-    quad.updates_with(quad,self,self._update_led)
-    self.refresh_counter=self.refresh_counter+1
+  if quad.id == self.current_quad then 
+    if self.refresh_counter > 9 then
+      self.force_full_refresh = true
+      self.refresh_counter = 0
+    end
+    if true or self.force_full_refresh then
+      quad.each_with(quad,self,self._update_led)
+      self.force_full_refresh = false
+    else
+      quad.updates_with(quad,self,self._update_led)
+      self.refresh_counter=self.refresh_counter+1
+    end
   end
   --TODO: update "Mirrored" rows / cols
   self:update_aux()
