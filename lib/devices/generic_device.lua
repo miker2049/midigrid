@@ -107,7 +107,7 @@ function device:refresh(quad)
       self.force_full_refresh = true
       self.refresh_counter = 0
     end
-    if true or self.force_full_refresh then
+    if self.force_full_refresh then
       quad.each_with(quad,self,self._update_led)
       self.force_full_refresh = false
     else
