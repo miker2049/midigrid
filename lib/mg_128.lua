@@ -19,7 +19,7 @@ brightness_handler = function(val) return 0 end
 
 function midigrid.init()
     local supported_devices = {
-        apcmini = 'apcmini',
+        apcmini = 'apc mini',
         launchpadmk2 = 'launchpad mk2',
         launchpadpro = 'launchpad pro 2',
         launchpad = 'launchpad',
@@ -226,7 +226,7 @@ function midigrid:all(brightness)
     if midigrid.device then
         for row = 1, midigrid.rows do
             for col = 1, midigrid.cols do
-                if grid_buf[row][col] ~= brightness then  -- this led needs to be set
+                -- if grid_buf[row][col] ~= brightness then  -- this led needs to be set
                     grid_buf[row][col] = brightness
                     if (quad == 1 and col < 9) then
                         note = grid_notes[row][col]
@@ -235,7 +235,7 @@ function midigrid:all(brightness)
                     end
                     -- the result of the fn call becomes the arg to `_brightness_to_buffer`
                     _brightness_to_buffer(note, vel, config:all_led_sysex(vel))
-                end
+                -- end
             end
         end
     end

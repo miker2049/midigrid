@@ -27,7 +27,7 @@ brightness_handler = function(val) return 0 end
 
 function midigrid.init()
     local supported_devices = {
-        apcmini = 'apcmini',
+        apcmini = 'apc mini',
         launchpadmk2 = 'launchpad mk2',
         launchpadpro = 'launchpad pro 2',
         launchpad = 'launchpad',
