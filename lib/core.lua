@@ -24,8 +24,6 @@ local midigrid = {
 
 brightness_handler = function(val) return 0 end
 
-
---init is called before returning the final pseudo grid object, so, in the final mg_XX file at the end
 function midigrid.init()
     local supported_devices = {
         apcmini = 'apc mini',

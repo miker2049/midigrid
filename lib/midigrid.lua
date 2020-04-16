@@ -1,5 +1,7 @@
 --the straight, vanilla implementation of midigrid where midi keys correspond to grid leds 1 to 1
-local midigrid = include('core')
+local midigrid = include('midigrid/lib/core')
+
+--init is called before returning the final pseudo grid object
 
 function _brightness_to_buffer(note, vel, result)
     -- `result` is the table returned by whichever led fn we called as an arg to
