@@ -16,7 +16,9 @@ local tab = require 'tabutil'
 
 
 --views are tables corresponding to a view of the grid_buf, as such they have correspondences between serialized grid bux indices and local midinote messages
-local views = {{},{}}
+--cheat codes version, so three tables corresponding to :w
+
+local views = {{},{},{}}
 
 local curr_view = 1
 
