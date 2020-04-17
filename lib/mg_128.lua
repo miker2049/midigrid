@@ -46,6 +46,8 @@ function midigrid.views_init()
         view_note_coords[2][note] = {col+8, row}
       end
     end
+    midigrid.cols=16
+    midigrid.rows=8
     midigrid:all(1)
     midigrid:all(0)
     midigrid:refresh()
