@@ -38,6 +38,14 @@ function midigrid.views_init()
             _populate_view(x,y)
         end
     end
+    --note coords for two view
+    view_note_coords = {{},{}}
+    for row, notes in ipairs(grid_notes) do
+      for col, note in ipairs(notes) do
+        view_note_coords[1][note] = {col, row}
+        view_note_coords[2][note] = {col+8, row}
+      end
+    end
     midigrid:all(1)
     midigrid:all(0)
     midigrid:refresh()
@@ -54,15 +62,16 @@ function _populate_view(x,y)
     views[1][index] = config.grid_notes[y][x]
   end
 end
+
 function debug_views()
   print("debug"..#views[1])
   for i,v in ipairs(views[1])  do
-
     local x = math.tointeger(i/#views[1])
     local y = math.tointeger(i%#views[1])
     print("x is "..x.." and y is "..y)
   end
 end
+
 function _light_quad_button(which_quad)
     -- regardless of which quad button we wish to light, we still have to turn
     --     off all the others
@@ -123,15 +132,15 @@ function midigrid:led(x, y, brightness)
     print("not in view!")
   end
 end
+
+
 -- ...then we update the led buf at our leisure...
 -- function midigrid:led(col, row, brightness)
-
 --   grid_buf[row][col] = brightness
 --   local index = 16*r
 --     if (col >= 1 and row >= 1) and (col <= midigrid.cols and row <= midigrid.rows) then
 --         local vel = brightness_handler(brightness)
 --         local note = nil
-
 --         -- if we aint on the right quad dont bother
 --         if col >= 9 and quad == 1 then
 --             return
@@ -163,10 +172,8 @@ function midigrid:refresh()
             _local_midi_dev:send(config:display_double_buffer_sysex())
         end
         _local_midi_dev:send(midigrid.led_buf)
-
         -- apparently, we need to refresh the quad button leds as well
-        _light_quad_button(quad)
-
+        _light_quad_button(curr_view)
         -- ...and clear the buffer again.
         midigrid.led_buf = {}
     else
@@ -176,15 +183,15 @@ end
 
 
 -- surely there is more elegant way!
-function midigrid:changeview(quad)
+function midigrid:changeview(view)
     midigrid.led_buf = {}
-    if quad == 1 then
+    if view == 1 then
         for x = 1, midigrid.rows do
             for col = 1, midigrid.cols - 8  do
                 midigrid:led(col, row, grid_buf[row][col])
             end
         end
-    elseif quad == 2 then
+    elseif view == 2 then
         for row = 1, midigrid.rows do
             for col = midigrid.cols - 7, midigrid.cols do
                 midigrid:led(col, row, grid_buf[row][col])
@@ -195,11 +202,11 @@ function midigrid:changeview(quad)
 end
 
 
-function _handle_quad(midi_msg, which_quad)
+function _handle_quad(midi_msg, which_view)
     if midi_msg.type == "note_on" or caps["cc_edge_buttons"] then
-        quad = which_quad
-        _light_quad_button(quad)
-        midigrid.changequad(quad)
+        view = which_view
+        _light_quad_button(view)
+        midigrid.changeview(quad)
     end
 end
 
@@ -210,22 +217,21 @@ function midigrid.handle_key_midi(event)
     -- so, tldr, `event[2]` is what we want
     local note = event[2]
     local midi_msg = midi.to_msg(event)
-
     -- first, intercept the quad buttons...
     if tab.contains(view_btns, note) then
-        for local_quad, button in ipairs(view_btns) do
+        for view, button in ipairs(view_btns) do
             if note == button
-                    and curr_view ~= local_quad then
+                    and curr_view ~= view then
                 -- ...and change the quad, if needed
                 _handle_quad(midi_msg, local_quad)
+                return
             end
         end
-
     -- "musical" notes, i.e. the main 8x8 grid, are in this range, BUT these values are
     -- device-dependent. Reject cc "notes" here.
     -- elseif (note >= 0 and note <= 88)
     elseif (midi_msg.type == 'note_on' or midi_msg.type == 'note_off') then
-        local coords = note_coords[quad][note]
+        local coords = view_note_coords[curr_view][note]
         local state = 0
         if coords then
             local x, y
