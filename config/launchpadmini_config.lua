@@ -53,7 +53,7 @@ local launchpad={
       -- can we use sysex to update the grid leds?
       -- TODO on the launchpad we could use sysex to fast update all leds at refresh.
       -- This would require a custom midigred led and refreash methods as 2 leds are written at once!
-      sysex = false,
+      sysex = true,
       -- is this an rgb device?
       rgb = false,
       -- can we double buffer?
@@ -83,7 +83,50 @@ local launchpad={
     end
   end,
 
-  device_name='launchpad mini'
+  device_name='launchpad mini',
+
+  --[[ this is the column of keys on the sides of the grid, not necessary for strict
+       grid emulation but handy!
+       the lp pro round buttons send midi ccs
+  ]]
+
+  split_string = function(color)
+      local rgb = {}
+      -- '([^,]+)' regex for 'group match any number of characters which are not `,`'
+      for byte in string.gmatch(color, '([^,]+)') do
+          rgb[#rgb + 1] = byte
+      end
+      return rgb[1], rgb[2], rgb[3]
+  end,
+
+
+  led_sysex = function(self, led, color)
+      local set_led_rgb = '0x0b' -- magic number for "set led rgb"
+      -- `color` is e.g. 'ff,f2,e6'
+      local r, g, b = self.split_string(color)
+      return self.do_sysex(set_led_rgb, led, r, g, b)
+  end,
+
+
+  all_led_sysex = function(self, color)
+      local set_all_led_rgb = '0x0e' -- magic number for "set ALL leds"
+      local r, g, b = self.split_string(color)
+      return self.do_sysex(set_all_led_rgb, r, g, b)
+  end,
+
+
+  do_sysex = function(command, ...)
+      local var_args = ', '
+      for i = 1, select("#", ...) do
+          var_args = var_args .. string.format('%s, ', select(i, ...))
+      end
+      local end_sysex = '0xf7'
+      local sysex_str = string.format('0xf0, 0x00, 0x20, 0x29, 0x02, 0x10, %s%s%s',
+                                      command, var_args, end_sysex)
+      -- print(sysex_str)
+      local sysex = tab.split(sysex_str, ', ')
+      return sysex
+  end
 }
 
 return launchpad
