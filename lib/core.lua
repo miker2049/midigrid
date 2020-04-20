@@ -170,4 +170,8 @@ function midigrid.update_devices()
     return (midigrid.midi_id ~= nil)
 end
 
+midigrid.name = 'Midi Grid'
+midigrid.vports = { }
+midigrid.vports[1] = midigrid
+
 return midigrid
