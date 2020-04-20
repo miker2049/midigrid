@@ -11,36 +11,40 @@ local device={
     { 8, 9,10,11,12,13,14,15},
     { 0, 1, 2, 3, 4, 5, 6, 7}
   },
-  note_to_grid_lookup = {}, -- Intentionally left empty 
+  note_to_grid_lookup = {}, -- Intentionally left empty
   width=8,
   height=8,
-  
+
   midi_id = 1,
   refresh_counter = 0,
-  
+
   -- This MUST contain 15 values that corospond to brightness. these can be strings or tables if you midi send handler requires (e.g. RGB)
   brightness_map = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15},
-  
+
   --these are the keys in the apc to the sides of our apc, not necessary for strict grid emulation but handy!
   --they are up to down, so 82 is the auxkey to row 1
   auxcol = {82,83,84,85,86,87,88,89},
   --left to right, 64 is aux key to column 1
   auxrow = {64,65,66,67,68,69,70,71},
-  
-  quad_leds = { notes = { 64,65,66,67 } },
+
+  --as of now, order is important here
+  quad_leds = {notes = {64,65,66,67}},
+  -- quad_leds.notes[64] = 1,
+  -- quad_leds.notes[65] = 2,
+  -- quad_leds.notes[66] = 3,
+  -- quad_leds.notes[67] = 4,
+
 
   -- the currently displayed quad on the device
   current_quad = 1,
   -- here we set the buttons to use when switching quads in multi-quad mode
-  upper_left_quad_button = 66,
-  upper_right_quad_button = 67,
-  
+
   force_full_refresh = false,
 
   device_name = 'generic'
 }
 
---function expects grid brightness from 0-15 and converts in so your midi controller can understand, 
+--function expects grid brightness from 0-15 and converts in so your midi controller can understand,
 -- these values need to be adjusted for your controller!
 function device:brightness_handler(val)
   -- remember tables start at 1, but brightness starts at 0
@@ -48,7 +52,7 @@ function device:brightness_handler(val)
 end
 
 function device:change_quad(quad)
-    
+
     self.current_quad = quad
     self.force_full_refresh = true
 end
@@ -74,35 +78,47 @@ function device.event(self,vgrid,event)
   -- type="note_on", note, vel, ch
   -- Note that midi msg already translates note on vel 0 to note off type
   local midi_msg = midi.to_msg(event)
-  
+
   -- Debug incomming midi messages
   -- tab.print(midi_msg)
 
-  -- "musical" notes, i.e. the main 8x8 grid, are in this range, BUT these values are
   -- device-dependent. Reject cc "notes" here.
   if (midi_msg.type == 'note_on' or midi_msg.type == 'note_off') then
+
     local key = self.note_to_grid_lookup[midi_msg.note]
     if key then
       local key_state = (midi_msg.type == 'note_on') and 1 or 0
       self._key_callback(self.current_quad,key['x'],key['y'],key_state)
     else
-      print("Unhandled midi note: " .. midi_msg.note)
+      -- adding quad change from midinotes as defined in 'generic device'
+      -- if the key is not found in the grid lookup, look it up in the quad one..
+      local quad_index = nil
+      for index, value in ipairs(self.quad_leds.notes) do
+        if (value == midi_msg.note) then
+          quad_index = index
+        end
+      end
+      if quad_index then
+        self:change_quad(quad_index)
+      else
+        print("Unhandled midi note: " .. midi_msg.note)
+      end
     end
   elseif (midi_msg.type == 'cc') then
-    
-    if (self.cc_handler) then 
-      self:cc_handler(vgrid,midi_msg) 
+
+    if (self.cc_handler) then
+      self:cc_handler(vgrid,midi_msg)
     else
       -- unhandled CC msg, please leave commented, devices with rotatry encoders or pots output a lot of CC messages.
       --print('Unhandled CC '.. midi_msg.cc)
     end
   end
 end
-  
+
 device._key_callback = function() print('no vgrid event handle callback attached!') end
 
 function device:refresh(quad)
-  if quad.id == self.current_quad then 
+  if quad.id == self.current_quad then
     if self.refresh_counter > 9 then
       self.force_full_refresh = true
       self.refresh_counter = 0
@@ -122,7 +138,7 @@ end
 function device:update_aux()
   --TODO: Aux Rows / Cols
   if self.quad_leds.notes then
-    for q = 1,4 do 
+    for q = 1,4 do
       if self.current_quad == q then z = 16 else z = 1 end
       local vel = self.brightness_map[z]
       local note = self.quad_leds.notes[q]
@@ -131,7 +147,7 @@ function device:update_aux()
     end
   end
   if self.quad_leds.CC then
-    for q = 1,4 do 
+    for q = 1,4 do
       if self.current_quad == q then z = 16 else z = 1 end
       local vel = self.brightness_map[z]
       local cc = self.quad_leds.CC[q]
