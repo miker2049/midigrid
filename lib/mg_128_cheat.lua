@@ -63,9 +63,9 @@ function _populate_view(x,y)
   local index = 16*y+x  --this is all goofy because we are not zero indexed, but it shouldnt matter...
   if x > 12 then
     --we are on the second view
-    views[3][index] = grid_notes_rot[y][x-8]
+    views[3][index] = grid_notes_rot[y][x-12]
   elseif x > 6 then
-    views[2][index] = grid_notes_rot[y][x]
+    views[2][index] = grid_notes_rot[y][x-6]
   else
     views[1][index] = grid_notes_rot[y][x]
   end
