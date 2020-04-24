@@ -31,6 +31,7 @@ function midigrid.views_init()
         config.upper_right_quad_button,
         config.lower_left_quad_button
     }
+    grid_notes_rot = _rotate_grid_notes(grid_notes)
     -- start on "quad" 1
     -- make the grid buf, a hardcoded 128 grid
     grid_buf = {}
@@ -42,7 +43,6 @@ function midigrid.views_init()
         end
     end
     --rotating the grid just for notes part 
-    grid_notes_rot = _rotate_grid_notes(grid_notes)
 
     --note coords for three view
     view_note_coords = {{},{},{}}
