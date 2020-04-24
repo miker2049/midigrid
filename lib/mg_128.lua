@@ -48,9 +48,6 @@ function midigrid.views_init()
     end
     midigrid.cols=16
     midigrid.rows=8
-    midigrid:all(1)
-    midigrid:all(0)
-    midigrid:refresh()
 end
 
 function _populate_view(x,y)
@@ -136,38 +133,6 @@ function midigrid:led(x, y, brightness)
 end
 
 
--- ...then we update the led buf at our leisure...
--- function midigrid:led(col, row, brightness)
---   grid_buf[row][col] = brightness
---   local index = 16*r
---     if (col >= 1 and row >= 1) and (col <= midigrid.cols and row <= midigrid.rows) then
---         local vel = brightness_handler(brightness)
---         local note = nil
---         -- if we aint on the right quad dont bother
---         if col >= 9 and quad == 1 then
---             return
---         end
---         if col <= 8 and quad == 2 then
---             return
---         end
---         if midigrid.device then
---             if quad == 1 then
---                 note = grid_notes[row][col]
---             elseif quad == 2 then
---                 note = grid_notes[row][col - 8]
---             end
---             if note then
---                 -- the result of the fn call becomes the arg to `_brightness_to_buffer`
---                 _brightness_to_buffer(note, vel, config:led_sysex(note, vel))
---             else
---                 print('no note found! coordinates... x: ' .. col .. ' y: ' .. row .. ' z: ' .. brightness)
---             end
---         end
---     end
--- end
-
-
--- ...then we send the whole buf at once
 function midigrid:refresh()
     if midigrid.device then
         if caps['lp_double_buffer'] then
@@ -184,12 +149,11 @@ function midigrid:refresh()
 end
 
 
--- surely there is more elegant way!
 function midigrid:changeview(view)
     midigrid.led_buf = {}
     if view == 1 then
-        for x = 1, midigrid.rows do
-            for col = 1, midigrid.cols - 8  do
+        for x = 1, 8 do
+            for col = 1, 8  do
                 midigrid:led(col, row, grid_buf[row][col])
             end
         end
@@ -229,9 +193,7 @@ function midigrid.handle_key_midi(event)
                 return
             end
         end
-    -- "musical" notes, i.e. the main 8x8 grid, are in this range, BUT these values are
     -- device-dependent. Reject cc "notes" here.
-    -- elseif (note >= 0 and note <= 88)
     elseif (midi_msg.type == 'note_on' or midi_msg.type == 'note_off') then
         local coords = view_note_coords[curr_view][note]
         local state = 0
