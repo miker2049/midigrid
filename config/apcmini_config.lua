@@ -26,6 +26,21 @@ local apcmini={
     end
   end,
 
+  -- dummy functions because it doesnt apply to apcmini
+  all_led_sysex = function(self, color) return end,
+  led_sysex = function(self, color) return end,
+
+  -- table of device-specific capabilities
+  caps = {
+    -- can we use sysex to update the grid leds?
+    sysex = false,
+    -- is this an rgb device?
+    rgb = false,
+    -- can we double buffer?
+    lp_double_buffer = false,
+    -- do the edge buttons send cc?
+    cc_edge_buttons = false
+  },
   --these are the keys in the apc to the sides of our apc, not necessary for strict grid emulation but handy!
   --they are up to down, so 82 is the auxkey to row 1
   auxcol = {82,83,84,85,86,87,88,89},
@@ -33,11 +48,10 @@ local apcmini={
   auxrow = {64,65,66,67,68,69,70,71},
 
   -- here we set the buttons to use when switching quads in multi-quad mode
-  upper_left_quad_button = 66,
-  upper_right_quad_button = 67,
-  -- TODO: contributors with this device - please fill this in
-  -- lower_left_quad_button = ??,
-  -- lower_right_quad_button = ??,
+  upper_left_quad_button = 64,
+  upper_right_quad_button = 65,
+  lower_left_quad_button = 66,
+  lower_right_quad_button = 67,
 
   device_name='apc mini'
 }
