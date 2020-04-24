@@ -25,10 +25,11 @@ local curr_view = 1
 --be sure to put this after midigrid.init()
 function midigrid.views_init()
     -- defined so that our table's indices correspond to the quad numbers we've decided on:
-    --     1|2
+    --     1|2|3
     view_btns = {
         config.upper_left_quad_button,
-        config.upper_right_quad_button
+        config.upper_right_quad_button,
+        config.lower_left_quad_button
     }
     -- start on "quad" 1
     -- make the grid buf, a hardcoded 128 grid
@@ -40,31 +41,85 @@ function midigrid.views_init()
             _populate_view(x,y)
         end
     end
-    --note coords for two view
-    view_note_coords = {{},{}}
-    for row, notes in ipairs(grid_notes) do
+    --rotating the grid just for notes part 
+    grid_notes_rot = _rotate_grid_notes(grid_notes)
+
+    --note coords for three view
+    view_note_coords = {{},{},{}}
+    for row, notes in ipairs(grid_notes_rot) do
       for col, note in ipairs(notes) do
         view_note_coords[1][note] = {col, row}
-        view_note_coords[2][note] = {col+8, row}
+        view_note_coords[2][note] = {col+6, row}
+        view_note_coords[3][note] = {col+12, row}
       end
     end
+    --see, still needs to be 16xs of 8y
     midigrid.cols=16
     midigrid.rows=8
-    midigrid:all(1)
-    midigrid:all(0)
     midigrid:refresh()
 end
 
 function _populate_view(x,y)
   local index = 16*y+x  --this is all goofy because we are not zero indexed, but it shouldnt matter...
-  if x > 8 then
+  if x > 12 then
     --we are on the second view
-    -- print('adding the note '..config.grid_notes[y][x-8]..' to the coordinates'..x..','..y..'  at index '..index..' on view 2')
-    views[2][index] = config.grid_notes[y][x-8]
+    views[3][index] = grid_notes_rot[y][x-8]
+  elseif x > 6 then
+    views[2][index] = grid_notes_rot[y][x]
   else
-    -- print('adding the note '..config.grid_notes[y][x]..' to the coordinates'..x..','..y..'  at index '..index..' on view 1')
-    views[1][index] = config.grid_notes[y][x]
+    views[1][index] = grid_notes_rot[y][x]
   end
+end
+
+-- this rotates a 64 grid_notes table, as specified in config as a table of rows, 90 degrees, so its a table of columns
+function _rotate_grid_notes(grid_notes)
+        -- ok because we want to "flip this", we need to just do something very simple:
+        -- if you flip a 128 grid into portrait mode, you can imagine that suddenly you have 8 columns of 16, rather than 16 columns of 8
+        -- cheat codes to us like this, but the grid is not, its programmed always as 16 xs of y.
+        -- this part of the code concerns filling out the 'view_note_coords' table, which deals with midi into the script as a grid
+        -- it adds an index to a section of the table that represents a view, and gives a coordinate table
+        -- now we want to say that our midigrid note for (1,1) is (8,1)
+        -- (2,1) is (8,2)
+        -- (3,1) is (8,3)
+        -- (1,2) is (7,1)
+        -- (1,3) is (6,1)
+        -- (1,4) is (5,1)
+        -- (1,5) is (4,1)
+        -- (1,6) is (3,1)
+        -- (7,1) is (8,7)
+        -- (1,8) is (1,1)
+        -- (2,8) is (1,2)
+        -- (3,8) is (1,3)
+        -- (3,7) is (1,3)
+        --...ok
+        -- (x,y) to (x',y'):
+        -- x = y'
+        -- y = 9 - y
+        -- x' always seems to be = 9 - y
+        -- y' always seems to equal x
+        -- I think we can say this makes sense because the transformation on the x axis is one that makes y's original progression (x, (y1,y2,...)) be rather a decreasing distance from the x limit, and it seems random that its 9, but its just because we are base 1...
+  --ok all the above is scrapped in favor of simply flipping this grid on init
+        -- grid_notes= {
+        --   {56,57,58,59,60,61,62,63},
+        --   {48,49,50,51,52,53,54,55},
+        --   {40,41,42,43,44,45,46,47},
+        --   {32,33,34,35,36,37,38,39},
+        --   {24,25,26,27,28,29,30,31},
+        --   {16,17,18,19,20,21,22,23},
+        --   {8,9,10,11,12,13,14,15},
+        --   {0,1,2,3,4,5,6,7}
+        -- }
+        -- iterating, the first row is all the 1 columns
+        --special cheat codes rotation cheat codes are:
+        -- local x = 9 - row
+        -- local y = col
+  local rotated = {{},{},{},{},{},{},{},{}}
+  for rows = 1, 8 do
+    for cols = 8, 1, -1 do
+      rotated[rows][cols] = config.grid_notes[cols][rows]
+    end
+  end
+  return rotated
 end
 
 function debug_views()
@@ -133,39 +188,6 @@ function midigrid:led(x, y, brightness)
   end
 end
 
-
--- ...then we update the led buf at our leisure...
--- function midigrid:led(col, row, brightness)
---   grid_buf[row][col] = brightness
---   local index = 16*r
---     if (col >= 1 and row >= 1) and (col <= midigrid.cols and row <= midigrid.rows) then
---         local vel = brightness_handler(brightness)
---         local note = nil
---         -- if we aint on the right quad dont bother
---         if col >= 9 and quad == 1 then
---             return
---         end
---         if col <= 8 and quad == 2 then
---             return
---         end
---         if midigrid.device then
---             if quad == 1 then
---                 note = grid_notes[row][col]
---             elseif quad == 2 then
---                 note = grid_notes[row][col - 8]
---             end
---             if note then
---                 -- the result of the fn call becomes the arg to `_brightness_to_buffer`
---                 _brightness_to_buffer(note, vel, config:led_sysex(note, vel))
---             else
---                 print('no note found! coordinates... x: ' .. col .. ' y: ' .. row .. ' z: ' .. brightness)
---             end
---         end
---     end
--- end
-
-
--- ...then we send the whole buf at once
 function midigrid:refresh()
     if midigrid.device then
         if caps['lp_double_buffer'] then

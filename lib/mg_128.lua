@@ -132,38 +132,6 @@ function midigrid:led(x, y, brightness)
 end
 
 
--- ...then we update the led buf at our leisure...
--- function midigrid:led(col, row, brightness)
---   grid_buf[row][col] = brightness
---   local index = 16*r
---     if (col >= 1 and row >= 1) and (col <= midigrid.cols and row <= midigrid.rows) then
---         local vel = brightness_handler(brightness)
---         local note = nil
---         -- if we aint on the right quad dont bother
---         if col >= 9 and quad == 1 then
---             return
---         end
---         if col <= 8 and quad == 2 then
---             return
---         end
---         if midigrid.device then
---             if quad == 1 then
---                 note = grid_notes[row][col]
---             elseif quad == 2 then
---                 note = grid_notes[row][col - 8]
---             end
---             if note then
---                 -- the result of the fn call becomes the arg to `_brightness_to_buffer`
---                 _brightness_to_buffer(note, vel, config:led_sysex(note, vel))
---             else
---                 print('no note found! coordinates... x: ' .. col .. ' y: ' .. row .. ' z: ' .. brightness)
---             end
---         end
---     end
--- end
-
-
--- ...then we send the whole buf at once
 function midigrid:refresh()
     if midigrid.device then
         if caps['lp_double_buffer'] then
