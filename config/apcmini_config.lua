@@ -10,6 +10,9 @@ local apcmini={
     {8,9,10,11,12,13,14,15},
     {0,1,2,3,4,5,6,7}
   },
+
+  max_note = 63,
+
   --here, the function expects a brightness_handler val and spits out another val so your midi controller can understand, these values are generally great for apc with most scripts, but will also need to be adjusted for other controllers!
   --corresponds here to the 4 available states on apc: 0(off), 1(green) , 3(yellow), 5(red)
   brightness_handler = function (val)

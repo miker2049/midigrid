@@ -48,6 +48,7 @@ function midigrid.init()
     end
     config = include(config_name)
     grid_notes = config.grid_notes
+    max_note = config.max_note
     brightness_handler = config.brightness_handler
     device_name = config.device_name
     og_dev_add = nil

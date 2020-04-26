@@ -11,6 +11,9 @@ local launchpad={
     {96,97,98,99,100,101,102,103},
     {112,113,114,115,116,117,118,119}
   },
+
+  max_note = 119,
+
   --here, the function expects a brightness_handler val and spits out another val so your midi controller can understand, these values are generally great for apc with most scripts, but will also need to be adjusted for other controllers!
   --corresponds here to the launchpad led settings found in the manual
   brightness_handler = function (val)

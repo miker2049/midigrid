@@ -78,7 +78,7 @@ function midigrid.handle_key_midi(event)
 
     -- "musical" notes, i.e. the main 8x8 grid, are in this range, BUT these values are
     -- device-dependent. Reject cc "notes" here.
-    if (note >= 0 and note <= 88)
+    if (note >= 0 and note <= max_note)
             and (midi_msg.type == 'note_on' or midi_msg.type == 'note_off') then
         local coords = note_coords[note]
         local state = 0
