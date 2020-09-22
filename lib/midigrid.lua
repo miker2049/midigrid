@@ -76,9 +76,11 @@ function midigrid._find_midigrid_devices()
 
   for _, dev in pairs(midi.devices) do
     found_device = supported_devices.find_midi_device_type(dev)
-    print("Dev" .. dev.id .." FD "..found_device)
 
-    if found_device then mounted_devices[dev.id] = found_device end
+    if found_device then 
+      print("Dev" .. dev.id .." FD "..found_device)
+      mounted_devices[dev.id] = found_device 
+    end
   end
 
   print("mounted_devices")
