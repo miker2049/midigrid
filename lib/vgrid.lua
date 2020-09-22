@@ -129,7 +129,9 @@ function Vgrid:set_all(z)
 end
 
 function Vgrid:refresh(device_id)
-  for _,quad in pairs(self.quads) do
+  for qid,quad in pairs(self.quads) do
+    --print('vgrid refresh ' .. qid)
+    
     quad:freeze_updates()
     
     if device_id then
