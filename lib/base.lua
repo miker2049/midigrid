@@ -24,10 +24,14 @@ function midigrid._find_midigrid_devices()
   --TODO should we use midi.vports?
   for _, dev in pairs(midi.devices) do
     local name = string.lower(dev.name)
-    for device, device_name in pairs(supported_devices) do
+    if name:find 'launchpad mini %d' then
+      table.insert(midi_devices, 'launchpadmini')
+    else
+      for device, device_name in pairs(supported_devices) do
         if name == device_name then
             table.insert(midi_devices, device)
         end
+      end
     end
   end
 
