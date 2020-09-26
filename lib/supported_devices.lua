@@ -3,9 +3,7 @@ local supported_devices = {
     {  midi_base_name= 'launchpad',        device_type='launchpad'     },
     {  midi_base_name= 'launchpad mini',   device_type='launchpad'     },
     {  midi_base_name= 'launchpad mini mk3 2', device_type='launchpad_minimk3' },
-    {  midi_base_name= 'launchpad mini mk3 2 2', device_type='launchpad_minimk3' },
-    {  midi_base_name= 'launchpad mini mk3 2 3', device_type='launchpad_minimk3' },
-    {  midi_base_name= 'launchpad mini mk3 2 4', device_type='launchpad_minimk3' },
+    {  midi_base_name= 'launchpad mini mk3 2 2', device_type='launchpad_minimk3_128' },
     {  midi_base_name= 'apc mini',         device_type='apc_mini'      },
     {  midi_base_name= 'block 1',          device_type='livid_block'   },
 --[[ Known devices to be implemented, help required!
