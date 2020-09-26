@@ -12,21 +12,21 @@ launchpad.grid_notes= {
 }
 
 launchpad.brightness_map = {0,
-  15,
   11,
+  100,
   125,
+  83,
   117,
   14,
+  62,
   99,
   118,
-  2,
+  126,
   97,
-  97,
-  115,
-  119,
-  119,
-  3,
-  3
+  109,
+  13,
+  12,
+  119
 }
 
 launchpad.device_name = 'launchpad_minimk3'
