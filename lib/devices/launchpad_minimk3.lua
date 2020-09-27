@@ -6,7 +6,8 @@ local launchpad = include('midigrid/lib/devices/generic_device')
 launchpad.auxcol = {89,79,69,59,49,39,29,19}
 
 --left to right, 91 is aux key to column 1
-launchpad.auxrow = {91,92,93,94,95,96,97,98,99}
+launchpad.auxrow = {91,92,93,94,95,96,97,98}
+launchpad.quad_leds = {notes = {91,92,93,94}}
 
 launchpad.grid_notes= {
   {81,82,83,84,85,86,87,88},
