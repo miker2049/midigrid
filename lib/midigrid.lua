@@ -11,7 +11,6 @@
      does `set_midi_handler()`
 ]]
 
---local midigrid = include('midigrid/lib/base')
 local vgrid = include('midigrid/lib/vgrid')
 local supported_devices = include('midigrid/lib/supported_devices')
 
@@ -43,17 +42,17 @@ function midigrid.connect(dummy_id)
   -- If no midi devices found
   if next(midi_devices) == nil then
     print('No supported device found' .. #midi_devices)
-     
+
     tab.print(midi_devices)
     -- Make midigrid transparent if no devices found and return the core grid connect()
     return midigrid.core_grid.connect()
   end
 
   local connected_devices = midigrid._load_midi_devices(midi_devices)
-  
+
   print("Connected devices:")
   tab.print(connected_devices)
-  
+
   vgrid:attach_devices(connected_devices)
 
   midigrid.setup_connect_handling()
@@ -67,6 +66,7 @@ function vgrid.key(x,y,z)
   end
 end
 
+--this looks to the supported_devices.lua file and returns a table of supported midi devices currently connected
 function midigrid._find_midigrid_devices()
   local found_device = nil
   local mounted_devices = {}
@@ -76,9 +76,11 @@ function midigrid._find_midigrid_devices()
 
   for _, dev in pairs(midi.devices) do
     found_device = supported_devices.find_midi_device_type(dev)
-    print("Dev" .. dev.id .." FD "..found_device)
 
-    if found_device then mounted_devices[dev.id] = found_device end
+    if found_device then 
+      print("Dev" .. dev.id .." FD "..found_device)
+      mounted_devices[dev.id] = found_device 
+    end
   end
 
   print("mounted_devices")
@@ -95,7 +97,7 @@ function midigrid._load_midi_devices(midi_devs)
     device.midi_id = midi_id
     connected_devices[midi_id] = device
   end
-  
+
   return connected_devices
 end
 
@@ -117,7 +119,7 @@ function midigrid._handle_dev_remove(id)
 end
 
 function midigrid.update_devices()
-    --WTF does this do?
+    --TODO WTF does this do?
     midi.update_devices()
 end
 
@@ -141,6 +143,6 @@ end
 
 midigrid.name = 'Midi Grid'
 midigrid.vports = { }
-midigrid.vports[1] = midigrid 
+midigrid.vports[1] = midigrid
 
 return midigrid

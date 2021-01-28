@@ -103,6 +103,7 @@ end
 
 function Vgrid:find_quad(x,y)
   local qid = 1
+  
   if self.locate_in_layout then qid = self.locate_in_layout(self,x,y) end
   return self.quads[qid]
 end
@@ -128,12 +129,20 @@ function Vgrid:set_all(z)
 end
 
 function Vgrid:refresh(device_id)
-  if device_id then
-    self.devices[device_id]:refresh(self)
-  else
-    for _,device in pairs(self.devices) do
-      device:refresh(self)
+  for qid,quad in pairs(self.quads) do
+    --print('vgrid refresh ' .. qid)
+    
+    quad:freeze_updates()
+    
+    if device_id then
+      self.devices[device_id]:refresh(quad)
+    else
+      for _,device in pairs(self.devices) do
+        device:refresh(quad)
+      end
     end
+    
+    quad:reset_updates()
   end
 end
 
@@ -159,6 +168,14 @@ function Vgrid.new_quad(id,width,height,offset_x,offset_y)
     end
   end
   
+  function q:freeze_updates()
+    self.frozen_update = {
+      update_count = self.update_count,
+      updates_x = self.updates_x,
+      updates_y = self.updates_y
+    }
+  end
+  
   function q:reset_updates()
     self.update_count = 0
     self.updates_x = {}
@@ -181,10 +198,10 @@ function Vgrid.new_quad(id,width,height,offset_x,offset_y)
   end
 
   function q:updates_with(device,callback)
-    if self.update_count > 0 then
-      for u = 1,self.update_count do
-        local x = self.updates_x[u]
-        local y = self.updates_y[u]
+    if self.frozen_update and self.frozen_update.update_count > 0 then
+      for u = 1,self.frozen_update.update_count do
+        local x = self.frozen_update.updates_x[u]
+        local y = self.frozen_update.updates_y[u]
         callback(device,x,y,self.buffer[x][y])
       end
     end
